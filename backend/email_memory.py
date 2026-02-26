@@ -89,6 +89,8 @@ def _record_to_text(record: dict[str, Any]) -> str:
         parts.append(f"From: {record['from_addr']}")
     if record.get("target_type"):
         parts.append(f"Target: {record['target_type']}")
+    if record.get("target_name"):
+        parts.append(f"Cible: {record['target_name']}")
     if record.get("campaign_id"):
         parts.append(f"Campaign: {record['campaign_id']}")
     if record.get("body"):
@@ -96,6 +98,9 @@ def _record_to_text(record: dict[str, Any]) -> str:
         parts.append(body)
     if record.get("summary"):
         parts.append(record["summary"])
+    # Research records — index the full summary for semantic search
+    if record.get("research_summary"):
+        parts.append(record["research_summary"][:2000])
     return " | ".join(parts)
 
 
@@ -215,11 +220,12 @@ class EmailMemory:
         sent = sum(1 for r in all_records if r.get("type") == "sent")
         received = sum(1 for r in all_records if r.get("type") == "received")
         drafts = sum(1 for r in all_records if r.get("type") == "draft")
+        research = sum(1 for r in all_records if r.get("type") == "research")
         campaigns = len(set(r.get("campaign_id", "") for r in all_records if r.get("campaign_id")))
 
         parts.append(f"=== EMAIL MEMORY: {len(all_records)} records "
                      f"({sent} sent, {received} received, {drafts} drafts, "
-                     f"{campaigns} campaigns) ===")
+                     f"{research} research, {campaigns} campaigns) ===")
 
         # Semantic search results
         if query:
@@ -284,6 +290,7 @@ class EmailMemory:
         subject = r.get("subject", "")
         body = r.get("body", "")[:200]
         target = r.get("target_type", "")
+        target_name = r.get("target_name", "")
         campaign = r.get("campaign_id", "")
 
         line = f"[{ts}] {rtype}"
@@ -295,8 +302,18 @@ class EmailMemory:
             line += f" subj=\"{subject}\""
         if target:
             line += f" target={target}"
+        if target_name:
+            line += f" cible={target_name}"
         if campaign:
             line += f" campaign={campaign}"
-        if body:
+        # Research records — show summary excerpt
+        if rtype == "RESEARCH":
+            summary = r.get("research_summary", "")[:400]
+            n_results = r.get("search_results_count", 0)
+            n_pages = r.get("scraped_pages_count", 0)
+            line += f" [{n_results} résultats, {n_pages} pages]"
+            if summary:
+                line += f"\n  {summary}"
+        elif body:
             line += f"\n  {body}"
         return line

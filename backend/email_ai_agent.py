@@ -134,16 +134,34 @@ class EmailAIAgent:
 
         Uses DuckDuckGo search and page scraping to gather intelligence
         about a target before drafting a prospection email.
+        Results are always saved to memory for future reference.
 
         Returns:
-            Dict with search_results, scraped_pages, research_summary
+            Dict with search_results, scraped_pages, research_summary, memory_id
         """
         from backend.web_search import research_company
-        return research_company(
+        data = research_company(
             company_name=target_name,
             company_type=target_type,
             extra_keywords=extra_keywords,
         )
+
+        # Save research to memory so the agent remembers it
+        memory_record = {
+            "type": "research",
+            "target_name": target_name,
+            "target_type": target_type,
+            "subject": f"Recherche web: {target_name} ({target_type})",
+            "body": data.get("research_summary", "")[:3000],
+            "research_summary": data.get("research_summary", ""),
+            "search_results_count": len(data.get("search_results", [])),
+            "scraped_pages_count": len(data.get("scraped_pages", [])),
+            "extra_keywords": extra_keywords,
+        }
+        memory_id = self.memory.ingest(memory_record)
+        data["memory_id"] = memory_id
+
+        return data
 
     # --- Draft prospection email -------------------------------------------
 
@@ -224,11 +242,12 @@ class EmailAIAgent:
         }
         self.memory.ingest(draft)
 
-        # Attach research data (not stored in memory, returned in response)
+        # Attach research data (also saved to memory via research_target)
         if research_data:
             draft["research"] = {
                 "search_results": research_data.get("search_results", [])[:6],
                 "scraped_pages": research_data.get("scraped_pages", []),
+                "memory_id": research_data.get("memory_id", ""),
             }
 
         return draft

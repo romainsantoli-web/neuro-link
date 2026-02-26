@@ -146,6 +146,7 @@ export interface ResearchReport {
   search_results: SearchResult[];
   scraped_pages: ScrapedPage[];
   research_summary: string;
+  memory_id?: string;
 }
 
 export const researchTarget = async (

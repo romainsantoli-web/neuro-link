@@ -609,6 +609,15 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
                 </div>
               </div>
 
+              {/* Memory confirmation */}
+              {standaloneReport.memory_id && (
+                <div className="flex items-center gap-2 bg-green-900/20 border border-green-800/30 rounded-lg px-4 py-2.5 text-xs">
+                  <Brain size={14} className="text-green-400" />
+                  <span className="text-green-300 font-mono">Recherche sauvegardée en mémoire</span>
+                  <span className="text-green-600 font-mono">({standaloneReport.memory_id})</span>
+                </div>
+              )}
+
               {/* Main content: 2 columns */}
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                 {/* Left: Search results */}
@@ -1172,8 +1181,9 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
                       ${rec.type === 'sent' ? 'bg-blue-900/30 text-blue-300 border border-blue-700/30'
                         : rec.type === 'received' ? 'bg-green-900/30 text-green-300 border border-green-700/30'
                         : rec.type === 'draft' ? 'bg-yellow-900/30 text-yellow-300 border border-yellow-700/30'
+                        : rec.type === 'research' ? 'bg-cyan-900/30 text-cyan-300 border border-cyan-700/30'
                         : 'bg-purple-900/30 text-purple-300 border border-purple-700/30'}`}>
-                      {rec.type.toUpperCase()}
+                      {rec.type === 'research' ? '🔍 RESEARCH' : rec.type.toUpperCase()}
                     </span>
                     <span className="text-white font-medium text-sm truncate">{rec.subject}</span>
                   </div>

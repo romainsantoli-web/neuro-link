@@ -108,15 +108,65 @@ export const draftProspection = async (
   targetType: string,
   targetName: string,
   targetInfo: string = '',
+  autoResearch: boolean = true,
 ): Promise<EmailDraft> => {
   const resp = await fetch(`${normalizeBaseUrl(baseUrl)}/admin/email-ai/draft`, {
     method: 'POST',
     headers: adminHeaders(token),
-    body: JSON.stringify({ target_type: targetType, target_name: targetName, target_info: targetInfo }),
+    body: JSON.stringify({
+      target_type: targetType,
+      target_name: targetName,
+      target_info: targetInfo,
+      auto_research: autoResearch,
+    }),
   });
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}));
     throw new Error(err.detail || `Draft: ${resp.status}`);
+  }
+  return resp.json();
+};
+
+export interface SearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+}
+
+export interface ScrapedPage {
+  url: string;
+  title: string;
+  meta_description: string;
+  text_length: number;
+}
+
+export interface ResearchReport {
+  company_name: string;
+  company_type: string;
+  search_results: SearchResult[];
+  scraped_pages: ScrapedPage[];
+  research_summary: string;
+}
+
+export const researchTarget = async (
+  baseUrl: string,
+  token: string,
+  targetName: string,
+  targetType: string = '',
+  extraKeywords: string = '',
+): Promise<ResearchReport> => {
+  const resp = await fetch(`${normalizeBaseUrl(baseUrl)}/admin/email-ai/research`, {
+    method: 'POST',
+    headers: adminHeaders(token),
+    body: JSON.stringify({
+      target_name: targetName,
+      target_type: targetType,
+      extra_keywords: extraKeywords,
+    }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.detail || `Research: ${resp.status}`);
   }
   return resp.json();
 };

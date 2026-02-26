@@ -122,6 +122,29 @@ class EmailAIAgent:
     def __init__(self):
         self.memory = EmailMemory()
 
+    # --- Research target (web search) ----------------------------------------
+
+    def research_target(
+        self,
+        target_name: str,
+        target_type: str = "",
+        extra_keywords: str = "",
+    ) -> dict[str, Any]:
+        """Research a company/org/person via web search + scraping.
+
+        Uses DuckDuckGo search and page scraping to gather intelligence
+        about a target before drafting a prospection email.
+
+        Returns:
+            Dict with search_results, scraped_pages, research_summary
+        """
+        from backend.web_search import research_company
+        return research_company(
+            company_name=target_name,
+            company_type=target_type,
+            extra_keywords=extra_keywords,
+        )
+
     # --- Draft prospection email -------------------------------------------
 
     def draft_prospection(
@@ -130,6 +153,7 @@ class EmailAIAgent:
         target_name: str,
         target_info: str = "",
         extra_context: str = "",
+        auto_research: bool = True,
     ) -> dict[str, Any]:
         """Draft a prospection email for a specific target.
 
@@ -138,10 +162,21 @@ class EmailAIAgent:
             target_name: Name of the organization/person
             target_info: Additional info about the target
             extra_context: Any additional context to include
+            auto_research: Whether to auto-research the target via web search
 
         Returns:
-            Dict with keys: id, subject, body, to_suggestion, target_type, target_name
+            Dict with keys: id, subject, body, to_suggestion, target_type, target_name, research
         """
+        # Web research if enabled
+        research_text = ""
+        research_data = None
+        if auto_research:
+            try:
+                research_data = self.research_target(target_name, target_type, target_info)
+                research_text = f"\n\nRECHERCHE WEB:\n{research_data['research_summary'][:4000]}"
+            except Exception as e:
+                research_text = f"\n\n[Recherche web échouée: {e}]"
+
         # Load full context from memory
         memory_context = self.memory.load_full_context(
             query=f"{target_type} {target_name} prospection"
@@ -164,7 +199,11 @@ class EmailAIAgent:
             f"- Infos: {target_info}\n"
             f"- Contexte supplementaire: {extra_context}\n\n"
             f"MEMOIRE EMAIL:\n{memory_context}\n{history_text}\n\n"
-            f"CONTEXTE CIBLE:\n{target_ctx}\n\n"
+            f"CONTEXTE CIBLE:\n{target_ctx}\n"
+            f"{research_text}\n\n"
+            f"IMPORTANT: Utilise les informations de la recherche web pour personnaliser "
+            f"l'email. Mentionne des details concrets sur l'organisation (projets, equipes, "
+            f"actualites) pour montrer que tu connais leur travail.\n\n"
             f"Reponds en JSON avec les cles: subject, body, to_suggestion"
         )
 
@@ -184,6 +223,13 @@ class EmailAIAgent:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         self.memory.ingest(draft)
+
+        # Attach research data (not stored in memory, returned in response)
+        if research_data:
+            draft["research"] = {
+                "search_results": research_data.get("search_results", [])[:6],
+                "scraped_pages": research_data.get("scraped_pages", []),
+            }
 
         return draft
 

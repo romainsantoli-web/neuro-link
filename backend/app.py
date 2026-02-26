@@ -1085,6 +1085,7 @@ class EmailAIDraftPayload(BaseModel):
     target_type: str = Field(min_length=1)
     target_name: str = Field(min_length=1)
     target_info: str = ''
+    auto_research: bool = True
 
 class EmailAIReplyPayload(BaseModel):
     email_id: str | None = None
@@ -1122,8 +1123,28 @@ def admin_email_ai_draft(payload: EmailAIDraftPayload, request: Request) -> dict
         target_type=payload.target_type,
         target_name=payload.target_name,
         target_info=payload.target_info,
+        auto_research=payload.auto_research,
     )
     return draft
+
+
+class ResearchPayload(BaseModel):
+    target_name: str = Field(min_length=1)
+    target_type: str = ''
+    extra_keywords: str = ''
+
+
+@app.post('/admin/email-ai/research')
+def admin_email_ai_research(payload: ResearchPayload, request: Request) -> dict[str, Any]:
+    """Research a company/org via web search before drafting."""
+    _require_admin(request)
+    from backend.email_ai_agent import EmailAIAgent
+    agent = EmailAIAgent()
+    return agent.research_target(
+        target_name=payload.target_name,
+        target_type=payload.target_type,
+        extra_keywords=payload.extra_keywords,
+    )
 
 
 @app.post('/admin/email-ai/reply')

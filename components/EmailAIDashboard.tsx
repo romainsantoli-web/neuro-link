@@ -2,15 +2,17 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   composeEmail, draftProspection, sendDraft, fetchInbox, queryMemory,
   listCampaignTemplates, startCampaign, getCampaignStatus, triggerCampaignCheck,
-  processInbox, fetchDrafts,
+  processInbox, fetchDrafts, researchTarget,
   type EmailDraft, type InboxMessage, type EmailMemoryRecord,
   type CampaignTemplate, type CampaignInstance,
   type ProcessedEmail, type InboxProcessingReport, type DraftEmail,
+  type ResearchReport,
 } from '../services/emailAiApi';
 import {
   Mail, Send, Brain, Inbox, Megaphone, Search, RefreshCw,
   AlertTriangle, X, Check, ChevronRight, Clock, User, FileText, Zap,
   Shield, Filter, MailCheck, ToggleLeft, ToggleRight, Eye, Rocket,
+  Globe, ExternalLink,
 } from 'lucide-react';
 
 interface EmailAIDashboardProps {
@@ -44,6 +46,8 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
   const [targetName, setTargetName] = useState('');
   const [targetInfo, setTargetInfo] = useState('');
   const [prospectionDraft, setProspectionDraft] = useState<EmailDraft | null>(null);
+  const [researchReport, setResearchReport] = useState<ResearchReport | null>(null);
+  const [researching, setResearching] = useState(false);
 
   // Inbox state
   const [inboxMessages, setInboxMessages] = useState<InboxMessage[]>([]);
@@ -89,13 +93,28 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
   };
 
   // ── Prospection ──
+  const handleResearch = async () => {
+    if (!targetName.trim()) return;
+    setResearching(true);
+    setError('');
+    setResearchReport(null);
+    try {
+      const report = await researchTarget(apiUrl, token, targetName, targetType, targetInfo);
+      setResearchReport(report);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setResearching(false);
+    }
+  };
+
   const handleProspection = async () => {
     if (!targetName.trim()) return;
     setLoading(true);
     setError('');
     setProspectionDraft(null);
     try {
-      const draft = await draftProspection(apiUrl, token, targetType, targetName, targetInfo);
+      const draft = await draftProspection(apiUrl, token, targetType, targetName, targetInfo, true);
       setProspectionDraft(draft);
     } catch (e: any) {
       setError(e.message);
@@ -399,14 +418,72 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
               </div>
             </div>
 
-            <button onClick={handleProspection} disabled={loading || !targetName.trim()}
-              className="bg-gradient-to-r from-neon-purple to-pink-500 text-white font-orbitron font-bold
-                         px-6 py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed
-                         flex items-center gap-2">
-              {loading ? <RefreshCw size={16} className="animate-spin" /> : <Zap size={16} />}
-              GÉNÉRER EMAIL PROSPECTION
-            </button>
+            <div className="flex gap-3">
+              <button onClick={handleResearch} disabled={researching || !targetName.trim()}
+                className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-orbitron font-bold
+                           px-5 py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed
+                           flex items-center gap-2">
+                {researching ? <RefreshCw size={16} className="animate-spin" /> : <Globe size={16} />}
+                {researching ? 'RECHERCHE...' : 'RECHERCHER'}
+              </button>
+              <button onClick={handleProspection} disabled={loading || !targetName.trim()}
+                className="bg-gradient-to-r from-neon-purple to-pink-500 text-white font-orbitron font-bold
+                           px-5 py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed
+                           flex items-center gap-2">
+                {loading ? <RefreshCw size={16} className="animate-spin" /> : <Zap size={16} />}
+                GÉNÉRER EMAIL
+              </button>
+            </div>
           </div>
+
+          {/* ── Research Results ── */}
+          {researchReport && (
+            <div className="bg-[#0a0a0a] border border-cyan-800/40 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-orbitron text-xs text-cyan-300 tracking-wider flex items-center gap-2">
+                  <Globe size={14} /> RECHERCHE WEB — {researchReport.company_name}
+                </h4>
+                <button onClick={() => setResearchReport(null)} className="text-gray-500 hover:text-gray-300">
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="flex gap-3 text-xs font-mono text-gray-400">
+                <span>{researchReport.search_results.length} résultats trouvés</span>
+                <span>•</span>
+                <span>{researchReport.scraped_pages.length} pages analysées</span>
+              </div>
+
+              {/* Search results */}
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                {researchReport.search_results.map((sr, i) => (
+                  <div key={i} className="bg-black/40 border border-gray-800 rounded-lg p-3">
+                    <a href={sr.url} target="_blank" rel="noopener noreferrer"
+                      className="text-cyan-400 hover:text-cyan-300 text-sm font-medium flex items-center gap-1.5">
+                      {sr.title || sr.url}
+                      <ExternalLink size={10} className="flex-shrink-0" />
+                    </a>
+                    <div className="text-gray-600 text-xs mt-0.5 truncate">{sr.url}</div>
+                    <div className="text-gray-400 text-xs mt-1">{sr.snippet}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Scraped pages summary */}
+              {researchReport.scraped_pages.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="text-xs text-gray-500 font-mono">PAGES ANALYSÉES :</div>
+                  <div className="flex flex-wrap gap-2">
+                    {researchReport.scraped_pages.map((sp, i) => (
+                      <span key={i} className="text-xs bg-cyan-900/20 text-cyan-300 border border-cyan-800/30 px-2.5 py-1 rounded-full font-mono">
+                        {sp.title || 'Page'} ({Math.round(sp.text_length / 1000)}k chars)
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {prospectionDraft && (
             <DraftPreview draft={prospectionDraft} onSend={handleSend} loading={loading} sent={sendSuccess === prospectionDraft.id} />

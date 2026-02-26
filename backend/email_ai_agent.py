@@ -252,7 +252,9 @@ class EmailAIAgent:
             f"prospect_entrant | client | partenaire | investisseur | candidature | support | autre\n"
             f"- is_relevant: true si c'est un email professionnel pertinent pour Neuro-Link, false sinon\n"
             f"- urgency: haute | moyenne | basse\n"
-            f"- action: repondre_auto | repondre_manuel | ignorer | archiver | transferer\n"
+            f"- action: repondre_auto | ignorer | archiver | transferer\n"
+            f"  IMPORTANT: utilise 'repondre_auto' pour TOUT email pertinent (prospect, client, "
+            f"partenaire, investisseur, support, candidature). N'utilise 'ignorer' que pour spam/pub/newsletter/notifications.\n"
             f"- summary: resume en 1 phrase courte\n"
             f"- target_type: chu | ehpad | neurologue | investisseur | partenaire_tech | inconnu\n"
             f"- reply_tone: formel | collegial | enthousiaste | prudent | aucun"
@@ -526,7 +528,7 @@ class EmailAIAgent:
 
                 # Step 3: Auto-reply if relevant and action = repondre_auto
                 action = classification.get("action", "ignorer")
-                if auto_reply and is_relevant and action == "repondre_auto":
+                if auto_reply and is_relevant and action not in ("ignorer", "archiver"):
                     try:
                         draft = self._auto_reply(record, classification)
                         email_result["draft_id"] = draft.get("id")

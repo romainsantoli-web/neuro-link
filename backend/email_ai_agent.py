@@ -508,7 +508,8 @@ class EmailAIAgent:
                     "target_type": classification.get("target_type", "inconnu"),
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
-                ingested = self.memory.ingest(record)
+                memory_id = self.memory.ingest(record)
+                record["id"] = memory_id  # ensure record has its id
 
                 email_result: dict[str, Any] = {
                     "gmail_id": gmail_id,
@@ -519,7 +520,7 @@ class EmailAIAgent:
                     "urgency": classification.get("urgency", "basse"),
                     "action": classification.get("action", "ignorer"),
                     "summary": classification.get("summary", ""),
-                    "memory_id": ingested.get("id", ""),
+                    "memory_id": memory_id,
                     "draft_id": None,
                 }
 
@@ -527,7 +528,7 @@ class EmailAIAgent:
                 action = classification.get("action", "ignorer")
                 if auto_reply and is_relevant and action == "repondre_auto":
                     try:
-                        draft = self._auto_reply(ingested, classification)
+                        draft = self._auto_reply(record, classification)
                         email_result["draft_id"] = draft.get("id")
                         report["auto_replies_drafted"] += 1
                     except Exception as e:

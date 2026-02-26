@@ -308,7 +308,7 @@ export const PricingPage: React.FC<PricingPageProps> = ({ apiUrl, onClose }) => 
                                hover:shadow-glow-cyan-lg transition-all duration-300"
                   >
                     <Package className="w-4 h-4" />
-                    COMMANDER — $1,199
+                    COMMANDER — À PARTIR DE 429,95€
                     <ExternalLink className="w-3 h-3" />
                   </a>
                   <a
@@ -330,9 +330,9 @@ export const PricingPage: React.FC<PricingPageProps> = ({ apiUrl, onClose }) => 
                   <div className="w-20 h-20 rounded-full bg-neon-cyan/10 flex items-center justify-center mx-auto mb-3 border border-neon-cyan/20">
                     <Radio className="w-10 h-10 text-neon-cyan" />
                   </div>
-                  <p className="font-orbitron text-2xl font-black text-white">$1,199</p>
+                  <p className="font-orbitron text-2xl font-black text-white">429,95€</p>
                   <p className="text-[10px] text-gray-500 tracking-wider mt-1">ULTRACORTEX MARK IV</p>
-                  <p className="text-[10px] text-gray-600 mt-2">Livraison mondiale</p>
+                  <p className="text-[10px] text-gray-600 mt-2">À partir de</p>
                   <div className="flex items-center justify-center gap-1 mt-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-neon-green animate-pulse"></span>
                     <span className="text-[9px] text-neon-green font-mono">EN STOCK</span>

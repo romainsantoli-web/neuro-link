@@ -6,9 +6,9 @@ Storage: SQLite (backend/data/api_keys.db).
 
 Plans and quotas:
   - free:        5 analyses/month,   60 req/min
-  - starter:    50 analyses/month,  120 req/min  (€99/mois)
-  - clinique:  500 analyses/month,  300 req/min  (€499/mois)
-  - institution: unlimited,         600 req/min  (€1999/mois)
+  - starter:    50 analyses/month,  120 req/min  (€50/mois)
+  - clinique:  500 analyses/month,  300 req/min  (€250/mois)
+  - institution: unlimited,         600 req/min  (€1000/mois)
 """
 
 from __future__ import annotations
@@ -36,19 +36,19 @@ PLANS: dict[str, dict[str, Any]] = {
         "label": "Starter",
         "max_analyses_per_month": 50,
         "max_requests_per_minute": 120,
-        "price_eur": 99,
+        "price_eur": 50,
     },
     "clinique": {
         "label": "Clinique",
         "max_analyses_per_month": 500,
         "max_requests_per_minute": 300,
-        "price_eur": 499,
+        "price_eur": 250,
     },
     "institution": {
         "label": "Institution",
         "max_analyses_per_month": -1,  # unlimited
         "max_requests_per_minute": 600,
-        "price_eur": 1999,
+        "price_eur": 1000,
     },
 }
 

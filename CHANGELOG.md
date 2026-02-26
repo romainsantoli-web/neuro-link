@@ -44,8 +44,8 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 #### Modifié
 - **Glassmorphism** : Effets de verre sur tous les composants (backdrop-blur, gradients subtils)
 - **Animations** : Pulse, scan, fade-in sur les éléments interactifs
-- **Palette** : Neon cyan #00ffea, purple #a855f7, green #3fb950 sur fond #03070d
-- **Typographie** : Orbitron (titres), Rajdhani (corps), Share Tech Mono (mono)
+- **Palette** : Blue #60A5FA, indigo #818CF8, green #3fb950 sur fond #030712
+- **Typographie** : Plus Jakarta Sans (titres), Inter (corps), JetBrains Mono (mono)
 - **Rapport PDF redesigné** : Layout médical professionnel avec header branded
 
 ### 📢 Marketing & SEO

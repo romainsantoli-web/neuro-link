@@ -43,7 +43,7 @@ export const StatusHUD: React.FC<StatusHUDProps> = ({ isConnected }) => {
       <Card 
         title="KERNEL LINK" 
         value={isConnected ? "ESTABLISHED" : "OFFLINE"} 
-        color={isConnected ? "#00ffea" : "#555"} 
+        color={isConnected ? "#60A5FA" : "#555"} 
         icon={isConnected ? <Terminal size={20} /> : <WifiOff size={20} />}
         delay="0ms"
       />
@@ -57,7 +57,7 @@ export const StatusHUD: React.FC<StatusHUDProps> = ({ isConnected }) => {
       <Card 
         title="AI MODELS" 
         value={isConnected ? "AD-FORMER V2" : "STANDBY"} 
-        color={isConnected ? "#a855f7" : "#555"} 
+        color={isConnected ? "#818CF8" : "#555"} 
         icon={<BrainCircuit size={20} />} 
         animate={isConnected}
         delay="200ms"

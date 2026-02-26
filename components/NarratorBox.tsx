@@ -27,13 +27,13 @@ const Logigram: React.FC<{ type: LogigramType }> = ({ type }) => {
       {/* NEURAL */}
       {type === 'neural' && (
         <svg width="70" height="70" viewBox="0 0 100 100" className="animate-pulse">
-           <circle cx="50" cy="50" r="3" fill="#a855f7" />
-           <circle cx="20" cy="80" r="2.5" fill="#a855f7" className="animate-bounce" style={{ animationDelay: '100ms' }} />
-           <circle cx="80" cy="20" r="2.5" fill="#a855f7" className="animate-bounce" style={{ animationDelay: '200ms' }} />
-           <circle cx="80" cy="80" r="2.5" fill="#a855f7" className="animate-bounce" style={{ animationDelay: '300ms' }} />
-           <line x1="50" y1="50" x2="20" y2="80" stroke="#a855f7" strokeWidth="0.8" opacity="0.4" />
-           <line x1="50" y1="50" x2="80" y2="20" stroke="#a855f7" strokeWidth="0.8" opacity="0.4" />
-           <line x1="50" y1="50" x2="80" y2="80" stroke="#a855f7" strokeWidth="0.8" opacity="0.4" />
+           <circle cx="50" cy="50" r="3" fill="#818CF8" />
+           <circle cx="20" cy="80" r="2.5" fill="#818CF8" className="animate-bounce" style={{ animationDelay: '100ms' }} />
+           <circle cx="80" cy="20" r="2.5" fill="#818CF8" className="animate-bounce" style={{ animationDelay: '200ms' }} />
+           <circle cx="80" cy="80" r="2.5" fill="#818CF8" className="animate-bounce" style={{ animationDelay: '300ms' }} />
+           <line x1="50" y1="50" x2="20" y2="80" stroke="#818CF8" strokeWidth="0.8" opacity="0.4" />
+           <line x1="50" y1="50" x2="80" y2="20" stroke="#818CF8" strokeWidth="0.8" opacity="0.4" />
+           <line x1="50" y1="50" x2="80" y2="80" stroke="#818CF8" strokeWidth="0.8" opacity="0.4" />
         </svg>
       )}
 
@@ -69,7 +69,7 @@ export const NarratorBox: React.FC<NarratorBoxProps> = ({ message, logigramType 
        <div className="absolute right-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-neon-purple via-neon-purple/50 to-transparent" />
       
        {/* Subtle grid background */}
-       <div className="absolute inset-0 bg-[linear-gradient(rgba(168,85,247,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(168,85,247,0.015)_1px,transparent_1px)] bg-[size:24px_24px]" />
+       <div className="absolute inset-0 bg-[linear-gradient(rgba(129,140,248,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(129,140,248,0.015)_1px,transparent_1px)] bg-[size:24px_24px]" />
       
        {/* Logigram Layer */}
        <Logigram type={logigramType} />

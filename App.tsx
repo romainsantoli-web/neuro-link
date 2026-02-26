@@ -366,8 +366,8 @@ export default function App() {
              <div className="h-44 w-full mb-8 relative glass-panel overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={IDLE_WAVE_DATA}>
-                    <Line type="monotone" dataKey="alpha" stroke="#00ffea" strokeWidth={2} dot={false} animationDuration={3000} />
-                    <Line type="monotone" dataKey="theta" stroke="#a855f7" strokeWidth={1.5} dot={false} strokeDasharray="5 5" />
+                    <Line type="monotone" dataKey="alpha" stroke="#60A5FA" strokeWidth={2} dot={false} animationDuration={3000} />
+                    <Line type="monotone" dataKey="theta" stroke="#818CF8" strokeWidth={1.5} dot={false} strokeDasharray="5 5" />
                     </LineChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

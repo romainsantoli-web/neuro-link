@@ -24,15 +24,15 @@ const MockXAIChart = () => (
         <ResponsiveContainer width="100%" height="100%">
             <BarChart layout="vertical" data={XAI_DATA} margin={{ top: 20, right: 30, left: 40, bottom: 5 }}>
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={10} width={80} tick={{fill: '#94a3b8', fontFamily: '"Share Tech Mono", monospace'}} />
+                <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={10} width={80} tick={{fill: '#94a3b8', fontFamily: '"JetBrains Mono", monospace'}} />
                 <Tooltip 
                     contentStyle={{ backgroundColor: 'rgba(8,12,24,0.95)', borderColor: '#1e2a3a', color: '#f1f5f9', borderRadius: '8px', backdropFilter: 'blur(8px)' }} 
-                    itemStyle={{ color: '#00ffea' }}
-                    cursor={{fill: 'rgba(0, 255, 234, 0.03)'}}
+                    itemStyle={{ color: '#60A5FA' }}
+                    cursor={{fill: 'rgba(96, 165, 250, 0.03)'}}
                 />
                 <Bar dataKey="val" radius={[0, 6, 6, 0]} barSize={14}>
                   {XAI_DATA.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#00ffea' : '#a855f7'} fillOpacity={0.8} />
+                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#60A5FA' : '#818CF8'} fillOpacity={0.8} />
                   ))}
                 </Bar>
             </BarChart>
@@ -195,8 +195,8 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result }) =>
   ];
 
   const isPositive = result.status === 'ALZHEIMER';
-  const statusColor = isPositive ? '#ff3333' : '#00ffea';
-  const statusGlow = isPositive ? 'shadow-[0_0_40px_rgba(255,51,51,0.15)]' : 'shadow-[0_0_40px_rgba(0,255,234,0.15)]';
+  const statusColor = isPositive ? '#ff3333' : '#60A5FA';
+  const statusGlow = isPositive ? 'shadow-[0_0_40px_rgba(255,51,51,0.15)]' : 'shadow-[0_0_40px_rgba(96,165,250,0.15)]';
 
   const downloadReport = async () => {
     try {
@@ -320,20 +320,20 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result }) =>
                 <ResponsiveContainer width="100%" height="100%">
                     <RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}>
                     <PolarGrid gridType="polygon" stroke="#1e2a3a" strokeWidth={0.8} />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#00ffea', fontFamily: 'Orbitron', fontSize: 9, letterSpacing: '1px' }} />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#60A5FA', fontFamily: 'Plus Jakarta Sans', fontSize: 9, letterSpacing: '1px' }} />
                     <PolarRadiusAxis angle={30} domain={[0, 1]} tick={false} axisLine={false} />
                     
                     <Radar
                         name="Shadow"
                         dataKey="A"
                         stroke="transparent"
-                        fill="#00ffea"
+                        fill="#60A5FA"
                         fillOpacity={0.06}
                     />
                     <Radar
                         name="Patient"
                         dataKey="A"
-                        stroke="#00ffea"
+                        stroke="#60A5FA"
                         strokeWidth={2}
                         fill="url(#radarGradient)"
                         fillOpacity={0.4}
@@ -341,8 +341,8 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result }) =>
                     />
                      <defs>
                         <linearGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#00ffea" stopOpacity={0.6}/>
-                          <stop offset="95%" stopColor="#00ffea" stopOpacity={0.05}/>
+                          <stop offset="5%" stopColor="#60A5FA" stopOpacity={0.6}/>
+                          <stop offset="95%" stopColor="#60A5FA" stopOpacity={0.05}/>
                         </linearGradient>
                       </defs>
                     </RadarChart>

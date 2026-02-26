@@ -594,6 +594,69 @@ def report_pdf(payload: PdfReportRequest, request: Request):
     )
 
 
+# ═══════════ FHIR Export (HL7 FHIR R4) ═══════════
+
+class FhirExportRequest(BaseModel):
+    status: str = 'INCONCLUSIVE'
+    stage: str = 'Inconnu'
+    confidence: float = 0.0
+    features: dict[str, float] = {}
+    report: str = ''
+    patientId: str = 'Anonyme'
+
+
+@app.post('/report/fhir')
+def report_fhir(payload: FhirExportRequest, request: Request) -> dict[str, Any]:
+    """Export analysis results as a FHIR R4 Bundle (DiagnosticReport + Observations)."""
+    _require_auth_if_enabled(request)
+
+    # API key tracking (optional)
+    key_info = _get_api_key_info(request)
+    if key_info:
+        record_usage(key_info['id'], endpoint='/report/fhir', is_analysis=False)
+
+    from backend.fhir_export import create_fhir_bundle, validate_bundle_structure
+
+    bundle = create_fhir_bundle(
+        status=payload.status,
+        stage=payload.stage,
+        confidence=payload.confidence,
+        features=payload.features,
+        report_text=payload.report,
+        patient_id=payload.patientId,
+    )
+
+    errors = validate_bundle_structure(bundle)
+    if errors:
+        return {'bundle': bundle, 'validation_errors': errors}
+
+    return bundle
+
+
+@app.post('/report/fhir/json')
+def report_fhir_json(payload: FhirExportRequest, request: Request):
+    """Export FHIR Bundle as downloadable JSON file."""
+    _require_auth_if_enabled(request)
+
+    from backend.fhir_export import create_fhir_bundle, bundle_to_json
+
+    bundle = create_fhir_bundle(
+        status=payload.status,
+        stage=payload.stage,
+        confidence=payload.confidence,
+        features=payload.features,
+        report_text=payload.report,
+        patient_id=payload.patientId,
+    )
+
+    json_str = bundle_to_json(bundle)
+    return StreamingResponse(
+        io.BytesIO(json_str.encode('utf-8')),
+        media_type='application/fhir+json',
+        headers={'Content-Disposition': 'attachment; filename="neuro-link-fhir-report.json"'},
+    )
+
+
 # ═══════════ Admin – API Key Management (SaaS) ═══════════
 
 class CreateKeyRequest(BaseModel):

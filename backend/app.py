@@ -959,3 +959,115 @@ async def stripe_webhook(request: Request) -> dict[str, Any]:
 
     result = handle_webhook_event(event)
     return {'status': 'ok', **result}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EMAIL AGENT ROUTES (admin-only)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class EmailSendPayload(BaseModel):
+    to: list[str] = Field(min_length=1)
+    subject: str = Field(min_length=1, max_length=500)
+    body: str = Field(default='')
+    html: str | None = None
+    cc: list[str] | None = None
+    bcc: list[str] | None = None
+    reply_to: str | None = None
+    add_signature: bool = True
+    dry_run: bool = False
+
+class EmailTemplatePayload(BaseModel):
+    to: list[str] = Field(min_length=1)
+    template_path: str = Field(min_length=1)
+    subject: str | None = None
+    cc: list[str] | None = None
+    bcc: list[str] | None = None
+    reply_to: str | None = None
+    dry_run: bool = False
+
+
+@app.post('/admin/email/send')
+def admin_email_send(payload: EmailSendPayload, request: Request) -> dict[str, Any]:
+    """Send an email via the Neuro-Link Email Agent. Requires admin token."""
+    _require_admin(request)
+    from backend.email_agent import EmailAgent
+
+    try:
+        agent = EmailAgent()
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    try:
+        result = agent.send(
+            to=payload.to,
+            subject=payload.subject,
+            body=payload.body,
+            html=payload.html,
+            cc=payload.cc,
+            bcc=payload.bcc,
+            reply_to=payload.reply_to,
+            add_signature=payload.add_signature,
+            dry_run=payload.dry_run,
+        )
+        mon_logger.info('Email sent: to=%s subject=%s', payload.to, payload.subject)
+        return result
+    except Exception as exc:
+        mon_logger.error('Email send failed: %s', exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post('/admin/email/send-template')
+def admin_email_send_template(payload: EmailTemplatePayload, request: Request) -> dict[str, Any]:
+    """Send an email from a Markdown template. Requires admin token."""
+    _require_admin(request)
+    from backend.email_agent import EmailAgent
+
+    try:
+        agent = EmailAgent()
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    try:
+        result = agent.send_template(
+            to=payload.to,
+            template_path=payload.template_path,
+            subject=payload.subject,
+            cc=payload.cc,
+            bcc=payload.bcc,
+            reply_to=payload.reply_to,
+            dry_run=payload.dry_run,
+        )
+        mon_logger.info('Email template sent: to=%s template=%s', payload.to, payload.template_path)
+        return result
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except Exception as exc:
+        mon_logger.error('Email template send failed: %s', exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post('/admin/email/test')
+def admin_email_test(request: Request) -> dict[str, Any]:
+    """Send a test email to the agent's own address. Requires admin token."""
+    _require_admin(request)
+    from backend.email_agent import EmailAgent
+
+    try:
+        agent = EmailAgent()
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    try:
+        return agent.send_test()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get('/admin/email/log')
+def admin_email_log(request: Request, limit: int = 50) -> list[dict[str, Any]]:
+    """Get recent email send log. Requires admin token."""
+    _require_admin(request)
+    from backend.email_agent import EmailAgent
+
+    agent = EmailAgent.__new__(EmailAgent)
+    return agent.get_log(limit=limit)

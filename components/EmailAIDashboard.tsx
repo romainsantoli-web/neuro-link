@@ -28,6 +28,8 @@ const TARGET_TYPES = [
   { value: 'neurologue', label: 'Neurologue', emoji: '🧠' },
   { value: 'investisseur', label: 'Investisseur / VC', emoji: '💰' },
   { value: 'partenaire_tech', label: 'Partenaire Tech', emoji: '🔧' },
+  { value: 'labo_pharma', label: 'Labo Pharmaceutique', emoji: '💊' },
+  { value: 'concurrent_bci', label: 'Concurrent BCI / EEG', emoji: '⚡' },
 ];
 
 export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, token }) => {

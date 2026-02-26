@@ -113,6 +113,23 @@ TARGET_CONTEXT = {
         "integration technique (BrainFlow, LSL, UDP), benefice mutuel. "
         "Ton technique et collaboratif."
     ),
+    "labo_pharma": (
+        "Tu ecris a un laboratoire pharmaceutique (ex: Roche, Biogen, Eisai, Eli Lilly, Novo Nordisk). "
+        "Accent sur: biomarqueur digital complementaire a leurs molecules anti-amyloide, "
+        "screening pre-trial pour enrichir les cohortes d'essais cliniques, "
+        "endpoint digital objectif (EEG), reduction du cout de recrutement, "
+        "real-world evidence, companion diagnostic potentiel. "
+        "Ton formel, scientifique et oriente partenariat strategique."
+    ),
+    "concurrent_bci": (
+        "Tu ecris a un concurrent ou acteur du marche BCI/EEG (ex: OpenBCI, Emotiv, Muse/InteraXon, "
+        "Neuroelectrics, g.tec, ANT Neuro, Brain Products, Cognionics). "
+        "Accent sur: proposition de collaboration plutot que confrontation, "
+        "compatibilite logicielle, marche en croissance pour tous, "
+        "complementarite hardware (eux) + IA (nous), co-marketing, "
+        "integration native dans notre pipeline. "
+        "Ton respectueux, collaboratif et strategique. Ne jamais denigrer leur produit."
+    ),
 }
 
 # ---------------------------------------------------------------------------
@@ -180,6 +197,41 @@ TONE_PROFILES = {
         "benefice mutuel (leur materiel + notre IA).\n"
         "NE PAS: Etre trop formel, parler uniquement business, ignorer l'aspect communaute.\n"
         "SIGNATURE: Romain Kocupyr, Founder, Neuro-Link | Open-Source Alzheimer's Detection"
+    ),
+    "labo_pharma": (
+        "TON: Formel, scientifique, oriente partnership strategique. Credibilite maximale.\n"
+        "VOUVOIEMENT: Obligatoire. Titres (Docteur, Directeur Medical, VP R&D).\n"
+        "VOCABULAIRE: Pharma/biotech: essais cliniques phase II/III, biomarqueur digital, "
+        "companion diagnostic, endpoint, enrichissement de cohorte, screening pre-trial, "
+        "real-world evidence (RWE), pre-symptomatic, anti-amyloid, anti-tau, "
+        "FDA/EMA, CE marking, CRO, DSMB.\n"
+        "STRUCTURE: Contexte molecule/pipeline du labo > Probleme de recrutement/screening > "
+        "Notre solution comme outil complementaire > Donnees de performance (99.95%) > "
+        "Proposition de pilote ou partenariat > Appel a RDV.\n"
+        "ARGUMENTS CLES: Biomarqueur digital non-invasif (EEG vs PET/LCR), screening massif "
+        "a faible cout pour enrichir les cohortes, precision 99.95%, staging Braak, "
+        "compatible FHIR pour interop CRO, detection pre-symptomatique, 4 stades FAST, "
+        "potentiel companion diagnostic pour molecules anti-amyloide (Lecanemab, Donanemab, etc).\n"
+        "NE PAS: Pretendre remplacer les biomarqueurs existants (PET amyloide, LCR), "
+        "promettre une approbation regulatoire, etre trop startup/informel.\n"
+        "SIGNATURE: Romain Kocupyr, Founder & CEO, Neuro-Link | AI Biomarker for Alzheimer's"
+    ),
+    "concurrent_bci": (
+        "TON: Respectueux, collaboratif, strategique. D'egal a egal entre acteurs du marche.\n"
+        "VOUVOIEMENT: Initial, adaptable selon la culture de l'entreprise.\n"
+        "VOCABULAIRE: BCI/neurotechnologie: sampling rate, electrode count, dry/wet electrodes, "
+        "impedance, BrainFlow, LSL, EDF+, signal quality, artefact rejection, "
+        "FDA 510(k), CE medical, neurofeedback, research-grade.\n"
+        "STRUCTURE: Reference a leur produit/expertise > Reconnaissance de leur position marche > "
+        "Opportunite de collaboration win-win > Notre IA comme valeur ajoutee pour leur hardware > "
+        "Proposition concrete (integration, co-branding, API).\n"
+        "ARGUMENTS CLES: Notre IA ajoute de la valeur a LEUR hardware, 7 formats deja supportes, "
+        "integration native BrainFlow, marche en croissance pour tous ($5.2Md BCI d'ici 2030), "
+        "open-source = compatibilite garantie, co-marketing aupres des chercheurs/cliniciens, "
+        "nouveau use case clinique (Alzheimer) qui valorise leur materiel.\n"
+        "NE PAS: Denigrer ou comparer negativement leur produit, se positionner comme concurrent, "
+        "pretendre que notre solution est superieure a la leur, etre agressif commercialement.\n"
+        "SIGNATURE: Romain Kocupyr, Founder, Neuro-Link | Open-Source Alzheimer's Detection × BCI"
     ),
     "default": (
         "TON: Professionnel, courtois, adapte au contexte.\n"

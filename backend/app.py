@@ -723,3 +723,85 @@ def api_quota(request: Request) -> dict[str, Any]:
             'month': usage['month'],
         },
     }
+
+
+# ═══════════ Stripe Billing ═══════════
+
+class CheckoutRequest(BaseModel):
+    plan: str = Field(min_length=1)
+    owner: str = Field(min_length=1)
+    email: str = Field(default='')
+    api_key_id: int = Field(gt=0)
+
+
+@app.get('/stripe/config')
+def stripe_config(request: Request) -> dict[str, Any]:
+    """Check Stripe configuration status (admin only)."""
+    _require_admin(request)
+    from backend.stripe_billing import get_stripe_config
+    return get_stripe_config()
+
+
+@app.post('/stripe/checkout')
+def stripe_checkout(payload: CheckoutRequest, request: Request) -> dict[str, Any]:
+    """Create a Stripe Checkout Session for a plan subscription."""
+    _require_admin(request)
+    from backend.stripe_billing import create_checkout_session, is_configured
+
+    if not is_configured():
+        raise HTTPException(status_code=503, detail='Stripe not configured (set STRIPE_* env vars)')
+
+    key = get_key_by_id(payload.api_key_id)
+    if not key:
+        raise HTTPException(status_code=404, detail='API key not found')
+
+    try:
+        result = create_checkout_session(
+            plan=payload.plan,
+            owner=payload.owner,
+            email=payload.email,
+            api_key_id=payload.api_key_id,
+        )
+        return result
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post('/stripe/portal')
+def stripe_portal(request: Request) -> dict[str, Any]:
+    """Create a Stripe Customer Portal session. Requires customer_id in body."""
+    _require_admin(request)
+    from backend.stripe_billing import create_portal_session, is_configured
+
+    if not is_configured():
+        raise HTTPException(status_code=503, detail='Stripe not configured')
+
+    body = {}
+    # Parse JSON body for customer_id
+    import asyncio
+    # Sync route, use simple approach
+    customer_id = request.query_params.get('customer_id', '')
+    if not customer_id:
+        raise HTTPException(status_code=400, detail='customer_id query param required')
+
+    try:
+        return create_portal_session(customer_id)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.post('/stripe/webhook')
+async def stripe_webhook(request: Request) -> dict[str, Any]:
+    """Handle Stripe webhook events. No auth required (verified by signature)."""
+    from backend.stripe_billing import construct_webhook_event, handle_webhook_event
+
+    payload = await request.body()
+    sig_header = request.headers.get('stripe-signature', '')
+
+    try:
+        event = construct_webhook_event(payload, sig_header)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    result = handle_webhook_event(event)
+    return {'status': 'ok', **result}

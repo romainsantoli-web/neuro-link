@@ -44,7 +44,7 @@ MEMORY_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title='Neuro-Link API', version='0.1.0')
 
-from backend.monitoring import record_request, get_metrics_snapshot, logger as mon_logger
+from backend.monitoring import record_request, get_metrics_snapshot, record_page_view, get_page_analytics, logger as mon_logger
 from backend.api_keys import (
     generate_api_key,
     validate_key,
@@ -290,6 +290,28 @@ def metrics(request: Request) -> dict[str, Any]:
     except Exception:
         pass
     return snapshot
+
+
+@app.get('/t')
+def tracking_pixel(request: Request, p: str = 'unknown'):
+    """Privacy-first 1×1 transparent pixel. No cookies, no PII."""
+    referrer = request.headers.get('referer')
+    record_page_view(page=p, referrer=referrer)
+    # Return 1×1 transparent GIF
+    PIXEL = b'GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x00\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
+    from starlette.responses import Response
+    return Response(content=PIXEL, media_type='image/gif', headers={
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+    })
+
+
+@app.get('/analytics')
+def analytics_endpoint(request: Request) -> dict[str, Any]:
+    """Aggregated page view analytics (no PII). Auth-protected."""
+    _require_auth_if_enabled(request)
+    return get_page_analytics()
 
 
 @app.post('/analyze')

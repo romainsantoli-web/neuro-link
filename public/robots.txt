@@ -1,0 +1,11 @@
+# Neuro-Link v18 — Robots Directives
+# https://neuro-link.ai
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /metrics
+Disallow: /memory/
+
+# Sitemap
+Sitemap: https://neuro-link.ai/sitemap.xml

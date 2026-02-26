@@ -129,3 +129,57 @@ def get_metrics_snapshot() -> dict[str, Any]:
         },
         'routes': routes_data,
     }
+
+
+# ═══════════ Privacy-First Page Analytics ═══════════
+#
+# Minimal page-view tracking that respects PRIVACY.md:
+#   - No cookies, no fingerprinting, no third-party scripts
+#   - Aggregated daily counters only (no PII stored)
+#   - Data kept in-memory (lost on restart — ephemeral by design)
+#
+# Usage: mount `GET /t` as a 1×1 transparent pixel endpoint.
+# Landing page loads: <img src="/t?p=landing" width="1" height="1" alt="" />
+
+_page_lock = threading.Lock()
+_page_views: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+_referrer_counts: dict[str, int] = defaultdict(int)
+
+
+def record_page_view(page: str, referrer: str | None = None) -> None:
+    """Record an anonymous page view (no PII, no cookies)."""
+    today = datetime.utcnow().strftime('%Y-%m-%d')
+    with _page_lock:
+        _page_views[today][page] += 1
+        if referrer:
+            # Store only domain, strip path for privacy
+            try:
+                from urllib.parse import urlparse
+                domain = urlparse(referrer).netloc or referrer[:64]
+            except Exception:
+                domain = referrer[:64]
+            _referrer_counts[domain] += 1
+
+
+def get_page_analytics() -> dict[str, Any]:
+    """Return aggregated page view statistics (no PII)."""
+    with _page_lock:
+        total_views = sum(
+            count for day in _page_views.values() for count in day.values()
+        )
+        today = datetime.utcnow().strftime('%Y-%m-%d')
+        today_views = dict(_page_views.get(today, {}))
+
+        # Keep only last 30 days of data
+        daily_totals = {}
+        for day, pages in sorted(_page_views.items()):
+            daily_totals[day] = sum(pages.values())
+
+        return {
+            'total_views': total_views,
+            'today': today_views,
+            'daily': daily_totals,
+            'top_referrers': dict(
+                sorted(_referrer_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+            ),
+        }

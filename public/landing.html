@@ -9,6 +9,96 @@
     <meta property="og:title" content="Neuro-Link — Dépistage Alzheimer par IA" />
     <meta property="og:description" content="Détectez la maladie d'Alzheimer avec un simple EEG. Précision 99.95% grâce à l'IA hybride Transformer." />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://neuro-link.ai/" />
+    <meta property="og:image" content="https://neuro-link.ai/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:site_name" content="Neuro-Link" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Neuro-Link — Dépistage Alzheimer par IA & EEG" />
+    <meta name="twitter:description" content="Détectez la maladie d'Alzheimer avec un simple EEG. Précision 99.95% grâce à l'IA hybride Transformer." />
+    <meta name="twitter:image" content="https://neuro-link.ai/og-image.png" />
+    <link rel="canonical" href="https://neuro-link.ai/" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Romain Kocupyr" />
+    <meta name="theme-color" content="#030712" />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "name": "Neuro-Link",
+          "description": "Plateforme de dépistage précoce de la maladie d'Alzheimer par analyse d'EEG et Intelligence Artificielle hybride Transformer. Précision 99.95%.",
+          "applicationCategory": "HealthApplication",
+          "operatingSystem": "Web, Linux, macOS",
+          "url": "https://neuro-link.ai",
+          "author": {
+            "@type": "Person",
+            "name": "Romain Kocupyr",
+            "email": "romain.kocupyr@neuro-link.ai"
+          },
+          "offers": [
+            {
+              "@type": "Offer",
+              "name": "Recherche",
+              "price": "0",
+              "priceCurrency": "EUR",
+              "description": "Gratuit pour la recherche académique"
+            },
+            {
+              "@type": "Offer",
+              "name": "Starter",
+              "price": "50",
+              "priceCurrency": "EUR",
+              "description": "Pour praticiens indépendants — 100 analyses/mois"
+            },
+            {
+              "@type": "Offer",
+              "name": "Clinique",
+              "price": "250",
+              "priceCurrency": "EUR",
+              "description": "Pour cliniques — 500 analyses/mois, 5 utilisateurs"
+            },
+            {
+              "@type": "Offer",
+              "name": "Institution",
+              "price": "1000",
+              "priceCurrency": "EUR",
+              "description": "Multi-sites, analyses illimitées, SLA 99.9%"
+            }
+          ],
+          "softwareVersion": "18.0",
+          "license": "https://www.gnu.org/licenses/agpl-3.0.html"
+        },
+        {
+          "@type": "Organization",
+          "name": "Neuro-Link",
+          "url": "https://neuro-link.ai",
+          "logo": "https://neuro-link.ai/favicon.svg",
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "email": "contact@neuro-link.ai",
+            "contactType": "sales"
+          }
+        },
+        {
+          "@type": "ScholarlyArticle",
+          "name": "ADFormerHybrid: A Dual-Branch Transformer for Alzheimer Detection from EEG",
+          "author": {
+            "@type": "Person",
+            "name": "Romain Kocupyr"
+          },
+          "description": "Dual-branch Transformer architecture combining raw EEG patches with 267 engineered features for Alzheimer's disease detection and severity staging."
+        }
+      ]
+    }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
     <style>
@@ -363,7 +453,7 @@
 
         <div class="cta-group">
             <a href="/app" class="btn btn-primary">LANCER L'ANALYSE</a>
-            <a href="https://github.com/romainkocupyr/neuro-link" class="btn btn-secondary" target="_blank">GITHUB</a>
+            <a href="https://github.com/romainsantoli-web/neuro-link" class="btn btn-secondary" target="_blank">GITHUB</a>
         </div>
     </div>
 </section>
@@ -494,6 +584,18 @@
             </ul>
             <a href="/app" class="btn btn-secondary" style="width: 100%; justify-content: center;">COMMENCER</a>
         </div>
+        <div class="price-card">
+            <h3>STARTER</h3>
+            <div class="price">50€ <span>/mois</span></div>
+            <ul>
+                <li>100 analyses/mois</li>
+                <li>1 utilisateur</li>
+                <li>API REST</li>
+                <li>Rapport PDF</li>
+                <li>Support email</li>
+            </ul>
+            <a href="mailto:contact@neuro-link.ai" class="btn btn-secondary" style="width: 100%; justify-content: center;">S'INSCRIRE</a>
+        </div>
         <div class="price-card featured">
             <h3>CLINIQUE</h3>
             <div class="price">250€ <span>/mois</span></div>
@@ -530,10 +632,13 @@
     <p style="margin-top: 2rem;">
         &copy; 2024-2026 <strong>Kocupyr Romain</strong> — Neuro-Link v18<br/>
         <a href="/LICENSE">Dual License (AGPL v3 / Commercial)</a> &middot;
-        <a href="https://github.com/romainkocupyr/neuro-link">GitHub</a> &middot;
+        <a href="https://github.com/romainsantoli-web/neuro-link">GitHub</a> &middot;
         <a href="mailto:contact@neuro-link.ai">Contact</a>
     </p>
 </footer>
+
+<!-- Privacy-first analytics (no cookies, no PII) -->
+<img src="/t?p=landing" width="1" height="1" alt="" style="position:absolute;opacity:0;" />
 
 </body>
 </html>

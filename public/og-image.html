@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Neuro-Link OG Image</title>
+    <style>
+        /* 
+         * Open this file in a browser and screenshot at 1200×630px
+         * to generate og-image.png for social sharing.
+         */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap');
+        
+        body {
+            width: 1200px;
+            height: 630px;
+            overflow: hidden;
+            background: #030712;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        /* Background effects */
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse at 20% 30%, rgba(0,255,234,0.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 70%, rgba(168,85,247,0.08) 0%, transparent 50%);
+        }
+        body::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border: 3px solid rgba(0,255,234,0.15);
+            border-radius: 0;
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 0 80px;
+        }
+        
+        .badge {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            letter-spacing: 6px;
+            color: #00ffea;
+            margin-bottom: 24px;
+            opacity: 0.8;
+        }
+        
+        .title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 96px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #00ffea, #ffffff, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .subtitle {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 28px;
+            font-weight: 400;
+            color: #94a3b8;
+            max-width: 800px;
+            margin: 0 auto 40px;
+            line-height: 1.4;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 60px;
+            justify-content: center;
+        }
+        
+        .stat-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 36px;
+            font-weight: 900;
+            color: #00ffea;
+            text-shadow: 0 0 30px rgba(0,255,234,0.4);
+        }
+        
+        .stat-label {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 14px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-top: 4px;
+        }
+        
+        .version {
+            position: absolute;
+            bottom: 30px;
+            right: 40px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            color: #475569;
+            letter-spacing: 4px;
+        }
+
+        .url {
+            position: absolute;
+            bottom: 30px;
+            left: 40px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 18px;
+            color: #00ffea;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="badge">ADVANCED ALZHEIMER DIAGNOSTIC INTERFACE</div>
+        <div class="title">NEURO-LINK</div>
+        <div class="subtitle">Dépistage précoce de la maladie d'Alzheimer<br/>par IA hybride Transformer & EEG</div>
+        <div class="stats">
+            <div>
+                <div class="stat-value">99.95%</div>
+                <div class="stat-label">Précision dépistage</div>
+            </div>
+            <div>
+                <div class="stat-value">97.79%</div>
+                <div class="stat-label">Confiance staging</div>
+            </div>
+            <div>
+                <div class="stat-value">7s</div>
+                <div class="stat-label">Temps d'analyse</div>
+            </div>
+            <div>
+                <div class="stat-value">267</div>
+                <div class="stat-label">Features EEG</div>
+            </div>
+        </div>
+    </div>
+    <div class="version">V18.0</div>
+    <div class="url">neuro-link.ai</div>
+</body>
+</html>

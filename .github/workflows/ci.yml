@@ -1,0 +1,107 @@
+name: Neuro-Link CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # ──────────────────────────────────────────────
+  # 1. Lint & Syntax — Python backend + pipeline
+  # ──────────────────────────────────────────────
+  python-checks:
+    name: Python Lint & Syntax
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install ruff pytest httpx
+
+      - name: Run backend tests
+        run: |
+          python -m pytest tests/ -v --tb=short
+
+      - name: Syntax check — all Python files
+        run: |
+          python -m py_compile backend/app.py
+          python -m py_compile alz-finis/run_pipeline.py
+          python -m py_compile alz-finis/adformer_hybrid_voting_full.py
+          python -m py_compile alz-finis/eeg_io.py
+          python -m py_compile alz-finis/Dépistage/ad_depistage_alz_scaler/depistage_patient_from_set.py
+          python -m py_compile alz-finis/ad_id_99_c_scaler/predict_patient_from_set.py
+
+      - name: Lint with Ruff
+        run: |
+          ruff check backend/ alz-finis/ --select E,F,W --ignore E501,F401,E402 --exit-zero
+
+  # ──────────────────────────────────────────────
+  # 2. Frontend build check
+  # ──────────────────────────────────────────────
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+  # ──────────────────────────────────────────────
+  # 3. Security scan
+  # ──────────────────────────────────────────────
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: [python-checks, frontend-build]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for secrets in code
+        run: |
+          # Fail if any hardcoded tokens/keys found
+          ! grep -rn 'BEARER_TOKEN\s*=\s*"[^"]\{8,\}"' backend/ || echo "⚠️ Hardcoded token detected"
+          ! grep -rn 'password\s*=\s*"[^"]\{4,\}"' backend/ || echo "⚠️ Hardcoded password detected"
+
+      - name: Check .env files not committed
+        run: |
+          if [ -f .env ] || [ -f backend/.env ]; then
+            echo "❌ .env file found in repo — must be in .gitignore"
+            exit 1
+          fi
+
+      - name: Check model weights not committed
+        run: |
+          if find . -name "*.pth" -size +1M | head -1 | grep -q .; then
+            echo "⚠️ Large .pth model files found — consider using Git LFS or excluding them"
+          fi

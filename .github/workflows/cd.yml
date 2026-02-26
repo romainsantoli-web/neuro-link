@@ -1,0 +1,88 @@
+# ──────────── Neuro-Link — Continuous Deployment ────────────
+# Triggered on push to main after CI passes.
+# Deploys via SSH to Oracle Cloud Always Free (ARM Ampere A1).
+# Uses systemd (not Docker) for lightweight deployment.
+#
+# Required secrets:
+#   VPS_HOST          — Public IP of the Oracle Cloud instance
+#   VPS_USER          — SSH user (default: ubuntu)
+#   VPS_SSH_KEY       — Private SSH key (ed25519 recommended)
+#   DEPLOY_DIR        — Absolute path on VPS (default: /opt/neuro-link-v18)
+
+name: Neuro-Link CD
+
+on:
+  workflow_run:
+    workflows: ["Neuro-Link CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Oracle Cloud
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy via SSH
+        env:
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER || 'ubuntu' }}
+          DIR: ${{ secrets.DEPLOY_DIR || '/opt/neuro-link-v18' }}
+          SSH_KEY: ~/.ssh/deploy_key
+        run: |
+          ssh -i $SSH_KEY -o StrictHostKeyChecking=no $USER@$HOST << 'DEPLOY_SCRIPT'
+            set -e
+            DIR="${DIR:-/opt/neuro-link-v18}"
+            cd "$DIR"
+
+            # Pull latest code
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Update Python dependencies
+            source .venv/bin/activate
+            pip install -r backend/requirements.txt -r requirements-ml.txt -q
+
+            # Rebuild frontend
+            npm ci --ignore-scripts --no-audit -q 2>/dev/null
+            npm run build
+            sudo cp -r dist/* /var/www/neuro-link-v18/
+
+            # Restart API service
+            sudo systemctl restart neuro-link-api
+
+            # Wait for health check
+            for i in $(seq 1 30); do
+              if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+                echo "✅ Deployment successful — health check passed"
+                exit 0
+              fi
+              sleep 2
+            done
+
+            echo "❌ Health check failed after 60s"
+            sudo journalctl -u neuro-link-api -n 50 --no-pager
+            exit 1
+          DEPLOY_SCRIPT
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "🚀 Deployment to ${{ secrets.VPS_HOST }} completed successfully"
+          else
+            echo "❌ Deployment failed — check logs above"
+          fi

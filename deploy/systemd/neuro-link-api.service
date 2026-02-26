@@ -1,0 +1,24 @@
+[Unit]
+Description=Neuro-Link FastAPI Service
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/neuro-link-v18
+EnvironmentFile=/etc/neuro-link/backend.env
+ExecStart=/opt/neuro-link-v18/.venv/bin/python -m uvicorn backend.app:app --host 127.0.0.1 --port 8000 --workers 2
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGINT
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/neuro-link-v18/backend/runs /opt/neuro-link-v18/backend/data
+
+[Install]
+WantedBy=multi-user.target

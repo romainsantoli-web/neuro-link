@@ -1,0 +1,536 @@
+from __future__ import annotations
+
+import io
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+from collections import defaultdict, deque
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+PIPELINE_SCRIPT = ROOT_DIR / 'alz-finis' / 'run_pipeline.py'
+PIPELINE_OUTPUT_DIR = ROOT_DIR / 'backend' / 'runs'
+MEMORY_FILE = ROOT_DIR / 'backend' / 'data' / 'memory_records.jsonl'
+PROJECT_MEMORY_FILE = ROOT_DIR / 'backend' / 'data' / 'project_memory.jsonl'
+
+ALLOWED_EXTENSIONS = {'.set', '.edf', '.bdf', '.vhdr', '.fif', '.csv', '.txt'}
+MAX_UPLOAD_BYTES = int(os.getenv('MAX_UPLOAD_BYTES', str(100 * 1024 * 1024)))
+MAX_CONTEXT_LENGTH = int(os.getenv('MAX_CONTEXT_LENGTH', '12000'))
+SECURITY_BEARER_TOKEN = os.getenv('SECURITY_BEARER_TOKEN', '').strip()
+SECURITY_STRICT_MODE = os.getenv('SECURITY_STRICT_MODE', 'false').strip().lower() in {'1', 'true', 'yes', 'on'}
+
+REQUESTS_PER_MINUTE = int(os.getenv('RATE_LIMIT_PER_MINUTE', '60'))
+BLOCK_DURATION_SECONDS = int(os.getenv('RATE_LIMIT_BLOCK_SECONDS', '600'))
+
+_rate_lock = threading.Lock()
+_request_windows: dict[str, deque[float]] = defaultdict(deque)
+_blocked_until: dict[str, float] = {}
+_violations: dict[str, int] = defaultdict(int)
+
+PIPELINE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+MEMORY_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+app = FastAPI(title='Neuro-Link API', version='0.1.0')
+
+from backend.monitoring import record_request, get_metrics_snapshot, logger as mon_logger
+
+cors_origins_env = os.getenv('CORS_ALLOW_ORIGINS', '*').strip()
+if SECURITY_STRICT_MODE and cors_origins_env == '*':
+    cors_origins = ['http://localhost:3000']
+else:
+    cors_origins = ['*'] if cors_origins_env == '*' else [origin.strip() for origin in cors_origins_env.split(',') if origin.strip()]
+
+if SECURITY_STRICT_MODE and not SECURITY_BEARER_TOKEN:
+    raise RuntimeError('SECURITY_STRICT_MODE requires SECURITY_BEARER_TOKEN to be set')
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
+    allow_methods=['*'],
+    allow_headers=['*'],
+)
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get('x-forwarded-for', '').split(',')[0].strip()
+    if forwarded:
+        return forwarded
+    if request.client and request.client.host:
+        return request.client.host
+    return 'unknown'
+
+
+def _register_violation(ip: str, weight: int = 1) -> None:
+    with _rate_lock:
+        _violations[ip] += weight
+        if _violations[ip] >= 5:
+            _blocked_until[ip] = time.time() + BLOCK_DURATION_SECONDS
+
+
+def _is_blocked(ip: str) -> bool:
+    with _rate_lock:
+        blocked_until = _blocked_until.get(ip)
+        if not blocked_until:
+            return False
+        if time.time() >= blocked_until:
+            _blocked_until.pop(ip, None)
+            _violations.pop(ip, None)
+            return False
+        return True
+
+
+def _check_rate_limit(ip: str) -> bool:
+    now = time.time()
+    with _rate_lock:
+        window = _request_windows[ip]
+        while window and now - window[0] > 60:
+            window.popleft()
+        if len(window) >= REQUESTS_PER_MINUTE:
+            _violations[ip] += 1
+            if _violations[ip] >= 3:
+                _blocked_until[ip] = time.time() + BLOCK_DURATION_SECONDS
+            return False
+        window.append(now)
+    return True
+
+
+def _looks_malicious(text: str) -> bool:
+    patterns = [
+        r'\b(select|union|drop|insert|delete|update)\b',
+        r'<script',
+        r'\.\./',
+        r'\b(wget|curl|bash\s+-c|powershell)\b',
+    ]
+    lowered = text.lower()
+    return any(re.search(pattern, lowered) for pattern in patterns)
+
+
+def _require_auth_if_enabled(request: Request) -> None:
+    if not SECURITY_BEARER_TOKEN and not SECURITY_STRICT_MODE:
+        return
+    auth = request.headers.get('authorization', '')
+    expected = f'Bearer {SECURITY_BEARER_TOKEN}'
+    if auth != expected:
+        _register_violation(_client_ip(request), weight=2)
+        raise HTTPException(status_code=401, detail='Unauthorized')
+
+
+@app.middleware('http')
+async def security_middleware(request: Request, call_next):
+    ip = _client_ip(request)
+    t0 = time.time()
+
+    if _is_blocked(ip):
+        return JSONResponse(status_code=429, content={'detail': 'Client temporarily blocked'})
+
+    if not _check_rate_limit(ip):
+        return JSONResponse(status_code=429, content={'detail': 'Rate limit exceeded'})
+
+    try:
+        response = await call_next(request)
+    except HTTPException:
+        raise
+
+    duration_ms = (time.time() - t0) * 1000
+    route = request.url.path
+    is_err = response.status_code >= 400
+    record_request(route, duration_ms, is_error=is_err)
+
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['Referrer-Policy'] = 'no-referrer'
+    response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=()'
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+class MemoryContextRequest(BaseModel):
+    query: str = Field(min_length=1)
+    sessionId: str = Field(min_length=1)
+    limit: int = Field(default=5, ge=1, le=20)
+
+
+class ProjectMemoryRecord(BaseModel):
+    category: str = Field(description='task | decision | milestone | context')
+    taskId: str = ''
+    title: str
+    status: str = ''
+    phase: str = ''
+    notes: str = ''
+
+
+class ChatMessage(BaseModel):
+    role: str = Field(description='user | assistant')
+    content: str = Field(min_length=1)
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(min_length=1)
+    analysisContext: dict[str, Any] | None = None
+
+
+class MemoryIngestRequest(BaseModel):
+    sessionId: str
+    fileName: str
+    diagnosisStatus: str | None = None
+    stage: str = ''
+    confidence: float = 0.0
+    report: str = ''
+    features: dict[str, float] = Field(default_factory=dict)
+    createdAt: str = ''
+
+
+def _extract_json_from_stdout(stdout: str) -> dict[str, Any]:
+    lines = [line.strip() for line in stdout.splitlines() if line.strip()]
+    for line in reversed(lines):
+        if line.startswith('{') and line.endswith('}'):
+            try:
+                return json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+    try:
+        return json.loads(stdout)
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=500, detail=f'Pipeline JSON parsing failed: {exc}') from exc
+
+
+def _tokenize(text: str) -> set[str]:
+    return {token for token in re.findall(r"[a-zA-ZÀ-ÿ0-9_\-]+", text.lower()) if len(token) > 2}
+
+
+def _read_memory_records() -> list[dict[str, Any]]:
+    if not MEMORY_FILE.exists():
+        return []
+
+    records: list[dict[str, Any]] = []
+    for line in MEMORY_FILE.read_text(encoding='utf-8', errors='ignore').splitlines():
+        if not line.strip():
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return records
+
+
+def _append_memory_record(record: dict[str, Any]) -> None:
+    with MEMORY_FILE.open('a', encoding='utf-8') as handle:
+        handle.write(json.dumps(record, ensure_ascii=False) + '\n')
+
+
+@app.get('/health')
+def health() -> dict[str, str]:
+    return {'status': 'ok', 'service': 'neuro-link-api'}
+
+
+@app.get('/metrics')
+def metrics(request: Request) -> dict[str, Any]:
+    _require_auth_if_enabled(request)
+    snapshot = get_metrics_snapshot()
+    try:
+        from backend.gemini_report import get_usage_stats
+        snapshot['gemini'] = get_usage_stats()
+    except Exception:
+        pass
+    return snapshot
+
+
+@app.post('/analyze')
+async def analyze(
+    request: Request,
+    file: UploadFile = File(...),
+    session_id: str = Form(default='session_default'),
+    memory_context: str = Form(default=''),
+) -> dict[str, Any]:
+    _require_auth_if_enabled(request)
+
+    if not PIPELINE_SCRIPT.exists():
+        raise HTTPException(status_code=500, detail=f'Pipeline script not found: {PIPELINE_SCRIPT}')
+
+    session_id = re.sub(r'[^a-zA-Z0-9_\-]', '_', session_id)[:64] or 'session_default'
+    if _looks_malicious(session_id) or _looks_malicious(memory_context):
+        _register_violation(_client_ip(request), weight=2)
+        raise HTTPException(status_code=400, detail='Suspicious payload rejected')
+
+    if len(memory_context) > MAX_CONTEXT_LENGTH:
+        raise HTTPException(status_code=413, detail='memory_context too large')
+
+    suffix = Path(file.filename or 'input.set').suffix or '.set'
+    if suffix.lower() not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=415, detail=f'Unsupported file extension: {suffix}')
+
+    file_bytes = await file.read()
+    if not file_bytes:
+        raise HTTPException(status_code=400, detail='Empty file')
+    if len(file_bytes) > MAX_UPLOAD_BYTES:
+        _register_violation(_client_ip(request))
+        raise HTTPException(status_code=413, detail='File too large')
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp_path = Path(tmp.name)
+        tmp.write(file_bytes)
+
+    command = [
+        sys.executable,
+        str(PIPELINE_SCRIPT),
+        '--file',
+        str(tmp_path),
+        '--name',
+        session_id,
+        '--output_dir',
+        str(PIPELINE_OUTPUT_DIR),
+    ]
+
+    if memory_context.strip():
+        metadata_path = PIPELINE_OUTPUT_DIR / f'{session_id}_memory_context.txt'
+        metadata_path.write_text(memory_context, encoding='utf-8')
+
+    process = subprocess.run(command, capture_output=True, text=True, cwd=str(ROOT_DIR))
+
+    try:
+        result = _extract_json_from_stdout(process.stdout)
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    if process.returncode != 0:
+        return {
+            'error': 'Pipeline failed',
+            'status': 'INCONCLUSIVE',
+            'stage': 'Inconnu',
+            'confidence': 0.0,
+            'features': {},
+            'report': 'Inference failed. Check backend logs and model/runtime dependencies.',
+        }
+
+    status = result.get('status', 'INCONCLUSIVE')
+    stage = result.get('stage', 'Inconnu')
+    confidence = float(result.get('confidence', 0.0))
+    features = result.get('features', {})
+    raw_report = result.get('report', '')
+
+    # ── Gemini AI: generate professional report ──
+    ai_report = raw_report
+    try:
+        from backend.gemini_report import generate_gemini_report
+        gemini_text = await generate_gemini_report(
+            status=status,
+            stage=stage,
+            confidence=confidence,
+            features=features,
+            raw_report=raw_report,
+        )
+        if gemini_text:
+            ai_report = gemini_text
+    except Exception as exc:
+        import logging
+        logging.getLogger('neuro-link').warning('Gemini report generation failed: %s', exc)
+
+    return {
+        'status': status,
+        'stage': stage,
+        'confidence': confidence,
+        'features': features,
+        'report': ai_report,
+        'raw_report': raw_report,
+        'pipeline': result.get('pipeline', {}),
+    }
+
+
+@app.get('/memory/health')
+def memory_health() -> dict[str, str]:
+    return {'status': 'ok', 'service': 'memory'}
+
+
+@app.post('/memory/context')
+def memory_context(payload: MemoryContextRequest, request: Request) -> dict[str, Any]:
+    _require_auth_if_enabled(request)
+    if _looks_malicious(payload.query) or _looks_malicious(payload.sessionId):
+        _register_violation(_client_ip(request), weight=2)
+        raise HTTPException(status_code=400, detail='Suspicious query rejected')
+
+    records = _read_memory_records()
+    query_tokens = _tokenize(payload.query)
+
+    scored_records: list[tuple[int, dict[str, Any]]] = []
+    for record in records:
+        if record.get('sessionId') != payload.sessionId:
+            continue
+
+        haystack = ' '.join(
+            [
+                str(record.get('fileName', '')),
+                str(record.get('diagnosisStatus', '')),
+                str(record.get('stage', '')),
+                str(record.get('report', '')),
+            ]
+        )
+        score = len(query_tokens.intersection(_tokenize(haystack)))
+        if score > 0:
+            scored_records.append((score, record))
+
+    scored_records.sort(key=lambda item: item[0], reverse=True)
+    top_records = [record for _, record in scored_records[: payload.limit]]
+
+    context_parts = []
+    for record in top_records:
+        context_parts.append(
+            f"File={record.get('fileName')} | Status={record.get('diagnosisStatus')} | Stage={record.get('stage')} | Confidence={record.get('confidence')}"
+        )
+
+    context_text = '\n'.join(context_parts)
+    return {'context': context_text, 'sourceCount': len(top_records)}
+
+
+@app.post('/memory/ingest')
+def memory_ingest(payload: MemoryIngestRequest, request: Request) -> dict[str, Any]:
+    _require_auth_if_enabled(request)
+    if _looks_malicious(payload.sessionId) or _looks_malicious(payload.fileName):
+        _register_violation(_client_ip(request), weight=2)
+        raise HTTPException(status_code=400, detail='Suspicious payload rejected')
+
+    record = {
+        **payload.model_dump(),
+        'ingestedAt': datetime.utcnow().isoformat() + 'Z',
+    }
+    _append_memory_record(record)
+    return {'status': 'ok'}
+
+
+# ═══════════ Chatbot IA ═══════════
+
+@app.post('/chat')
+async def chat(payload: ChatRequest, request: Request) -> dict[str, Any]:
+    _require_auth_if_enabled(request)
+    messages = [{'role': m.role, 'content': m.content} for m in payload.messages]
+
+    # validate roles
+    for m in messages:
+        if m['role'] not in ('user', 'assistant'):
+            raise HTTPException(status_code=400, detail=f"Invalid role: {m['role']}")
+
+    # limit conversation length
+    if len(messages) > 50:
+        messages = messages[-50:]
+
+    try:
+        from backend.gemini_chat import chat_with_gemini
+        reply = await chat_with_gemini(
+            messages=messages,
+            analysis_context=payload.analysisContext,
+        )
+        return {'reply': reply}
+    except Exception as exc:
+        import logging
+        logging.getLogger('neuro-link').error('Chat error: %s', exc)
+        return {'reply': "Désolé, une erreur s'est produite. L'assistant est temporairement indisponible."}
+
+
+# ═══════════ Project Memory ═══════════
+
+def _read_project_memory() -> list[dict[str, Any]]:
+    if not PROJECT_MEMORY_FILE.exists():
+        return []
+    records: list[dict[str, Any]] = []
+    for line in PROJECT_MEMORY_FILE.read_text(encoding='utf-8', errors='ignore').splitlines():
+        if not line.strip():
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return records
+
+
+def _write_project_memory(records: list[dict[str, Any]]) -> None:
+    with PROJECT_MEMORY_FILE.open('w', encoding='utf-8') as f:
+        for r in records:
+            f.write(json.dumps(r, ensure_ascii=False) + '\n')
+
+
+@app.get('/project/tasks')
+def project_tasks(request: Request) -> dict[str, Any]:
+    _require_auth_if_enabled(request)
+    records = _read_project_memory()
+    return {'tasks': records, 'count': len(records)}
+
+
+@app.post('/project/upsert')
+def project_upsert(payload: ProjectMemoryRecord, request: Request) -> dict[str, Any]:
+    _require_auth_if_enabled(request)
+    records = _read_project_memory()
+    payload_dict = {**payload.model_dump(), 'updatedAt': datetime.utcnow().isoformat() + 'Z'}
+
+    updated = False
+    if payload.taskId:
+        for i, r in enumerate(records):
+            if r.get('taskId') == payload.taskId:
+                records[i] = payload_dict
+                updated = True
+                break
+
+    if not updated:
+        records.append(payload_dict)
+
+    _write_project_memory(records)
+    return {'status': 'ok', 'action': 'updated' if updated else 'created'}
+
+
+@app.get('/project/summary')
+def project_summary(request: Request) -> dict[str, Any]:
+    _require_auth_if_enabled(request)
+    records = [r for r in _read_project_memory() if r.get('category') == 'task']
+    total = len(records)
+    done = sum(1 for r in records if r.get('status') == 'completed')
+    progress = sum(1 for r in records if r.get('status') == 'in-progress')
+    todo = sum(1 for r in records if r.get('status') == 'not-started')
+    return {
+        'total': total,
+        'completed': done,
+        'inProgress': progress,
+        'notStarted': todo,
+        'percentComplete': round(done / total * 100, 1) if total > 0 else 0,
+    }
+
+
+# ═══════════ PDF Export ═══════════
+
+class PdfReportRequest(BaseModel):
+    status: str = 'INCONCLUSIVE'
+    stage: str = 'Inconnu'
+    confidence: float = 0.0
+    features: dict[str, Any] = {}
+    report: str = ''
+    pipeline: dict[str, Any] = {}
+    patientId: str = 'Anonyme'
+
+
+@app.post('/report/pdf')
+def report_pdf(payload: PdfReportRequest, request: Request):
+    _require_auth_if_enabled(request)
+    try:
+        from backend.pdf_report import generate_pdf_report
+    except ImportError:
+        raise HTTPException(status_code=501, detail='reportlab is not installed on the server')
+
+    analysis = payload.model_dump()
+    patient_id = analysis.pop('patientId', 'Anonyme')
+    pdf_bytes = generate_pdf_report(analysis, patient_id=patient_id)
+
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type='application/pdf',
+        headers={'Content-Disposition': f'attachment; filename="neuro-link-report.pdf"'},
+    )

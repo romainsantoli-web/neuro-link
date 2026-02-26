@@ -1,0 +1,67 @@
+# Neuro-Link — Dual License
+
+Copyright (c) 2024-2026 Kocupyr Romain. All rights reserved.
+
+This project is available under a **dual-license model**:
+
+---
+
+## 1. Open Source License — AGPL v3
+
+For academic research, non-commercial use, and open-source contributions,
+this software is licensed under the **GNU Affero General Public License v3.0**.
+
+You may use, modify, and redistribute this software under the terms of the
+AGPL-3.0. If you deploy a modified version as a network service, you must
+make the source code available to users of that service.
+
+Full text: https://www.gnu.org/licenses/agpl-3.0.en.html
+
+### Summary of AGPL-3.0 rights:
+- ✅ Free for academic and research use
+- ✅ Free for personal and non-commercial use
+- ✅ Modify and redistribute with source code disclosure
+- ✅ Use in open-source projects
+- ⚠️ Network deployment requires source sharing (copyleft)
+
+---
+
+## 2. Commercial License
+
+For commercial, proprietary, or enterprise use — including SaaS deployment,
+integration into commercial products, clinical deployment, or any use that
+does not comply with the AGPL-3.0 — a **separate commercial license** is
+required.
+
+### Commercial use includes but is not limited to:
+- Deploying Neuro-Link as part of a paid service or clinical product
+- Integrating Neuro-Link into proprietary software
+- Using Neuro-Link in a context where AGPL source disclosure is not desired
+- White-labeling or reselling the technology
+
+### To obtain a commercial license:
+Contact: **romain.kocupyr@neuro-link.ai**
+
+---
+
+## 3. Model Weights
+
+The trained model weights (`.pth` files) are provided under the same dual
+license. They may be used freely for research under AGPL-3.0, but commercial
+deployment of the weights requires a commercial license.
+
+---
+
+## 4. Medical Disclaimer
+
+Neuro-Link is a **research tool** and does NOT constitute a certified medical
+device. It has not been cleared or approved by any regulatory body (CE, FDA,
+or equivalent). Results must be interpreted by a qualified healthcare
+professional. Do not use Neuro-Link as the sole basis for medical decisions.
+
+---
+
+## Previous License
+
+Earlier versions of individual scripts were released under Creative Commons
+BY-NC-SA 4.0. As of v18, the project is governed by this dual-license model.

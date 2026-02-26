@@ -1,0 +1,75 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Backend runtime artifacts
+backend/runs/
+backend/data/memory_records.jsonl
+# Environment & secrets — NEVER commit
+.env
+.env.*
+!.env.example
+!.env.prod.example
+backend/.env
+backend/.env.*
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Model weights (use Git LFS or download separately)
+*.pth
+*.pkl
+*.h5
+*.hdf5
+*.onnx
+
+# Patient data — NEVER commit
+alz-finis/data/
+alz-finis/results_pipeline/
+alz-finis/**/rapport_*
+alz-finis/**/xai_*.png
+alz-finis/**/xai_*.csv
+
+# Training outputs & generated reports (keep only source .py)
+alz-finis/Dépistage/ad_depistage_alz_scaler/
+alz-finis/Dépistage/__pycache__/
+alz-finis/ad_id_99_c_scaler/__pycache__/
+alz-finis/**/rapport/
+alz-finis/**/barplots_XAI/
+*.fdt
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build / deployment
+*.tar.gz
+*.zip

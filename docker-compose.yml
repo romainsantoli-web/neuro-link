@@ -1,0 +1,27 @@
+# ──────────── Neuro-Link v18 — Docker Compose ────────────
+
+services:
+  neuro-link:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: neuro-link
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - ./backend/data:/app/backend/data
+      - ./backend/runs:/app/backend/runs
+      - ./alz-finis:/app/alz-finis:ro
+    environment:
+      - PORT=8000
+      - CORS_ALLOW_ORIGINS=${CORS_ALLOW_ORIGINS:-*}
+      - SECURITY_BEARER_TOKEN=${SECURITY_BEARER_TOKEN:-}
+      - SECURITY_STRICT_MODE=${SECURITY_STRICT_MODE:-false}
+      - MAX_UPLOAD_BYTES=${MAX_UPLOAD_BYTES:-20971520}
+      - RATE_LIMIT_PER_MINUTE=${RATE_LIMIT_PER_MINUTE:-60}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

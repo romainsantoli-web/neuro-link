@@ -1,0 +1,15 @@
+node_modules
+dist
+.git
+.github
+.pytest_cache
+__pycache__
+*.pyc
+.env
+.env.local
+backend/data/*.jsonl
+backend/runs/
+*.egg-info
+.vscode
+.idea
+*.log

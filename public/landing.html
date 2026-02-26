@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neuro-Link — Dépistage Alzheimer par IA & EEG</title>
+    <meta name="description" content="Plateforme de dépistage précoce de la maladie d'Alzheimer par analyse d'EEG et Intelligence Artificielle. Précision 99.95%. Compatible OpenBCI." />
+    <meta name="keywords" content="Alzheimer, EEG, Intelligence Artificielle, dépistage, neurologie, OpenBCI, diagnostic" />
+    <meta property="og:title" content="Neuro-Link — Dépistage Alzheimer par IA" />
+    <meta property="og:description" content="Détectez la maladie d'Alzheimer avec un simple EEG. Précision 99.95% grâce à l'IA hybride Transformer." />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --neon-cyan: #00ffea;
+            --neon-purple: #a855f7;
+            --dark-bg: #030712;
+            --card-bg: #0a0f1c;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--dark-bg);
+            color: #e2e8f0;
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .font-rajdhani { font-family: 'Rajdhani', sans-serif; }
+
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+            position: relative;
+            background: radial-gradient(ellipse at 50% 0%, rgba(0,255,234,0.08) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 100%, rgba(168,85,247,0.06) 0%, transparent 50%);
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+        .hero h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--neon-cyan), #fff, var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 4px;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        .hero .tagline {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: clamp(1.1rem, 2.5vw, 1.6rem);
+            color: #94a3b8;
+            max-width: 700px;
+            margin-bottom: 2.5rem;
+            font-weight: 300;
+        }
+        .hero .stats {
+            display: flex;
+            gap: 3rem;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat .value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 30px rgba(0,255,234,0.3);
+        }
+        .stat .label {
+            font-size: 0.85rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* CTA Buttons */
+        .cta-group { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2.5rem;
+            border-radius: 4px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-decoration: none;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-primary {
+            background: var(--neon-cyan);
+            color: #000;
+            box-shadow: 0 0 30px rgba(0,255,234,0.3);
+        }
+        .btn-primary:hover {
+            box-shadow: 0 0 50px rgba(0,255,234,0.5);
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: transparent;
+            color: var(--neon-cyan);
+            border: 1px solid rgba(0,255,234,0.3);
+        }
+        .btn-secondary:hover {
+            background: rgba(0,255,234,0.1);
+            border-color: var(--neon-cyan);
+        }
+
+        /* Sections */
+        section { padding: 6rem 2rem; max-width: 1200px; margin: 0 auto; }
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 1rem;
+            color: #fff;
+            letter-spacing: 3px;
+        }
+        .section-subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 4rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Feature Grid */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        .feature-card {
+            background: var(--card-bg);
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 2.5rem 2rem;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .feature-card:hover {
+            border-color: rgba(0,255,234,0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+        .feature-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .feature-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--neon-cyan);
+            margin-bottom: 0.8rem;
+            letter-spacing: 1px;
+        }
+        .feature-card p { color: #94a3b8; font-size: 0.95rem; }
+
+        /* Pipeline */
+        .pipeline {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            flex-wrap: wrap;
+            margin: 3rem 0;
+        }
+        .pipeline-step {
+            background: var(--card-bg);
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            width: 220px;
+            position: relative;
+        }
+        .pipeline-step .step-num {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7rem;
+            color: var(--neon-cyan);
+            letter-spacing: 3px;
+            margin-bottom: 0.5rem;
+        }
+        .pipeline-step h4 {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.2rem;
+            color: #fff;
+            font-weight: 600;
+        }
+        .pipeline-step p { color: #64748b; font-size: 0.8rem; margin-top: 0.5rem; }
+        .pipeline-arrow {
+            font-size: 1.5rem;
+            color: var(--neon-cyan);
+            padding: 0 0.5rem;
+        }
+
+        /* Pricing */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 2rem;
+        }
+        .price-card {
+            background: var(--card-bg);
+            border: 1px solid #1e293b;
+            border-radius: 16px;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .price-card.featured {
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 40px rgba(0,255,234,0.1);
+        }
+        .price-card.featured::before {
+            content: 'POPULAIRE';
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--neon-cyan);
+            color: #000;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 4px 16px;
+            border-radius: 20px;
+            letter-spacing: 2px;
+        }
+        .price-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--neon-cyan);
+            letter-spacing: 2px;
+            margin-bottom: 1rem;
+        }
+        .price-card .price {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+        .price-card .price span { font-size: 1rem; color: #64748b; font-weight: 400; }
+        .price-card ul {
+            list-style: none;
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+        .price-card li {
+            padding: 0.4rem 0;
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        .price-card li::before {
+            content: '✓ ';
+            color: var(--neon-cyan);
+            font-weight: bold;
+        }
+
+        /* Compatibility */
+        .compat-logos {
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+        .compat-item {
+            text-align: center;
+            color: #64748b;
+        }
+        .compat-item .format {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            color: var(--neon-cyan);
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid #1e293b;
+            padding: 3rem 2rem;
+            text-align: center;
+            color: #475569;
+            font-size: 0.85rem;
+        }
+        footer a { color: var(--neon-cyan); text-decoration: none; }
+        .disclaimer {
+            background: rgba(245, 158, 11, 0.08);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            max-width: 800px;
+            margin: 2rem auto;
+            font-size: 0.8rem;
+            color: #f59e0b;
+        }
+
+        @media (max-width: 768px) {
+            .hero .stats { gap: 1.5rem; }
+            .stat .value { font-size: 1.8rem; }
+            .pipeline { flex-direction: column; }
+            .pipeline-arrow { transform: rotate(90deg); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section class="hero">
+    <div style="position: relative; z-index: 1;">
+        <p class="font-orbitron" style="color: var(--neon-cyan); font-size: 0.75rem; letter-spacing: 6px; margin-bottom: 1.5rem;">ADVANCED ALZHEIMER DIAGNOSTIC INTERFACE</p>
+        <h1>NEURO-LINK</h1>
+        <p class="tagline">Dépistage précoce de la maladie d'Alzheimer par analyse d'EEG et Intelligence Artificielle hybride Transformer.</p>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="value">99.95%</div>
+                <div class="label">Précision dépistage</div>
+            </div>
+            <div class="stat">
+                <div class="value">97.79%</div>
+                <div class="label">Confiance staging</div>
+            </div>
+            <div class="stat">
+                <div class="value">7s</div>
+                <div class="label">Temps d'analyse</div>
+            </div>
+            <div class="stat">
+                <div class="value">5×</div>
+                <div class="label">Modèles ensemble</div>
+            </div>
+        </div>
+
+        <div class="cta-group">
+            <a href="/app" class="btn btn-primary">LANCER L'ANALYSE</a>
+            <a href="https://github.com/romainkocupyr/neuro-link" class="btn btn-secondary" target="_blank">GITHUB</a>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ PIPELINE ═══════════ -->
+<section>
+    <h2 class="section-title">PIPELINE CLINIQUE</h2>
+    <p class="section-subtitle">Analyse en 2 étapes : dépistage binaire puis staging de sévérité si positif.</p>
+    
+    <div class="pipeline">
+        <div class="pipeline-step">
+            <div class="step-num">ÉTAPE 01</div>
+            <div class="icon" style="font-size: 2rem;">📥</div>
+            <h4>Chargement EEG</h4>
+            <p>7 formats supportés (.set, .edf, .bdf, .vhdr, .fif, .csv, .txt)</p>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-step">
+            <div class="step-num">ÉTAPE 02</div>
+            <div class="icon" style="font-size: 2rem;">🧠</div>
+            <h4>Dépistage</h4>
+            <p>AD vs. Cognitively Normal<br/>5 modèles, soft-voting</p>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-step">
+            <div class="step-num">ÉTAPE 03</div>
+            <div class="icon" style="font-size: 2rem;">📊</div>
+            <h4>Staging</h4>
+            <p>Léger / Modéré / Sévère<br/>Si AD détecté</p>
+        </div>
+        <div class="pipeline-arrow">→</div>
+        <div class="pipeline-step">
+            <div class="step-num">ÉTAPE 04</div>
+            <div class="icon" style="font-size: 2rem;">📋</div>
+            <h4>Rapport</h4>
+            <p>Rapport clinique + XAI<br/>Top 10 features</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ FEATURES ═══════════ -->
+<section>
+    <h2 class="section-title">FONCTIONNALITÉS</h2>
+    <p class="section-subtitle">Une plateforme complète, de l'EEG brut au rapport clinique.</p>
+
+    <div class="features">
+        <div class="feature-card">
+            <div class="icon">🧬</div>
+            <h3>ADFormerHybrid</h3>
+            <p>Architecture Transformer 4 couches + encodeur de 267 features EEG. Combine attention sur les patchs bruts et features spectrales, entropiques et de graphe.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🗳️</div>
+            <h3>Ensemble 5 Modèles</h3>
+            <p>Soft-voting sur 5 checkpoints indépendants pour une robustesse maximale. Moyenne des softmax = confiance calibrée.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">📡</div>
+            <h3>OpenBCI Compatible</h3>
+            <p>Fonctionne avec des casques EEG à $249. Détection automatique des unités, rééchantillonnage, et normalisation des canaux.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🔐</div>
+            <h3>Sécurité Renforcée</h3>
+            <p>Rate limiting, blocage IP, anti-injection, authentification bearer, TLS, headers de sécurité, sandboxing systemd.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">🔍</div>
+            <h3>Explicabilité (XAI)</h3>
+            <p>Top 10 des features les plus influentes via l'analyse d'activation du feature encoder. Transparence diagnostique complète.</p>
+        </div>
+        <div class="feature-card">
+            <div class="icon">⚡</div>
+            <h3>Analyse en 7 secondes</h3>
+            <p>Pipeline complet (dépistage + staging) en moins de 10 secondes sur un Mac M1. Optimisé CPU, pas de GPU requis.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ COMPATIBILITY ═══════════ -->
+<section>
+    <h2 class="section-title">COMPATIBILITÉ</h2>
+    <p class="section-subtitle">Fonctionne avec tous les systèmes EEG majeurs.</p>
+
+    <div class="compat-logos">
+        <div class="compat-item">
+            <span class="format">.SET</span>
+            EEGLAB
+        </div>
+        <div class="compat-item">
+            <span class="format">.EDF</span>
+            European Data
+        </div>
+        <div class="compat-item">
+            <span class="format">.BDF</span>
+            BioSemi
+        </div>
+        <div class="compat-item">
+            <span class="format">.VHDR</span>
+            BrainVision
+        </div>
+        <div class="compat-item">
+            <span class="format">.FIF</span>
+            MNE-Python
+        </div>
+        <div class="compat-item">
+            <span class="format">.CSV/.TXT</span>
+            OpenBCI
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ PRICING ═══════════ -->
+<section>
+    <h2 class="section-title">TARIFS</h2>
+    <p class="section-subtitle">Gratuit pour la recherche. Plans professionnels pour les cliniques et institutions.</p>
+
+    <div class="pricing-grid">
+        <div class="price-card">
+            <h3>RECHERCHE</h3>
+            <div class="price">Gratuit</div>
+            <ul>
+                <li>Analyses illimitées</li>
+                <li>Tous formats EEG</li>
+                <li>Rapport clinique</li>
+                <li>Watermark "Recherche"</li>
+                <li>Communauté Discord</li>
+            </ul>
+            <a href="/app" class="btn btn-secondary" style="width: 100%; justify-content: center;">COMMENCER</a>
+        </div>
+        <div class="price-card featured">
+            <h3>CLINIQUE</h3>
+            <div class="price">499€ <span>/mois</span></div>
+            <ul>
+                <li>500 analyses/mois</li>
+                <li>5 utilisateurs</li>
+                <li>API REST</li>
+                <li>Rapport PDF personnalisé</li>
+                <li>Support prioritaire</li>
+            </ul>
+            <a href="mailto:contact@neuro-link.ai" class="btn btn-primary" style="width: 100%; justify-content: center;">NOUS CONTACTER</a>
+        </div>
+        <div class="price-card">
+            <h3>INSTITUTION</h3>
+            <div class="price">1999€ <span>/mois</span></div>
+            <ul>
+                <li>Analyses illimitées</li>
+                <li>Multi-sites</li>
+                <li>Intégration DPI</li>
+                <li>SLA 99.9%</li>
+                <li>Support dédié 24/7</li>
+            </ul>
+            <a href="mailto:contact@neuro-link.ai" class="btn btn-secondary" style="width: 100%; justify-content: center;">DEMANDER UN DEVIS</a>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer>
+    <div class="disclaimer">
+        ⚠️ <strong>Avertissement médical</strong> — Neuro-Link est un outil d'aide à la recherche et ne constitue pas un diagnostic médical.
+        Les résultats doivent être interprétés par un professionnel de santé qualifié. Dispositif non certifié CE/FDA.
+    </div>
+    <p style="margin-top: 2rem;">
+        &copy; 2024-2026 <strong>Kocupyr Romain</strong> — Neuro-Link v18<br/>
+        <a href="/LICENSE">Dual License (AGPL v3 / Commercial)</a> &middot;
+        <a href="https://github.com/romainkocupyr/neuro-link">GitHub</a> &middot;
+        <a href="mailto:contact@neuro-link.ai">Contact</a>
+    </p>
+</footer>
+
+</body>
+</html>

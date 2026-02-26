@@ -314,6 +314,75 @@ def analytics_endpoint(request: Request) -> dict[str, Any]:
     return get_page_analytics()
 
 
+# ═══════════ Public Plan Endpoints ═══════════
+
+@app.get('/plans')
+def public_plans() -> dict[str, Any]:
+    """List available plans and pricing (public, no auth)."""
+    return {'plans': {k: {'label': v['label'], 'price_eur': v['price_eur'],
+                          'max_analyses_per_month': v['max_analyses_per_month']}
+                      for k, v in PLANS.items()}}
+
+
+class SignupRequest(BaseModel):
+    plan: str = Field(default='free')
+    owner: str = Field(min_length=1, max_length=200)
+    email: str = Field(min_length=3, max_length=200)
+    organization: str = Field(default='', max_length=200)
+
+
+@app.post('/signup')
+def public_signup(payload: SignupRequest) -> dict[str, Any]:
+    """Self-service signup for free plan. Creates an API key and returns the prefix."""
+    if payload.plan != 'free':
+        raise HTTPException(status_code=400, detail='Self-service signup is only available for the free plan. Contact us for paid plans.')
+
+    try:
+        result = generate_api_key(owner=payload.owner, email=payload.email, plan='free')
+        mon_logger.info('Self-service signup: owner=%s email=%s', payload.owner, payload.email)
+        return {
+            'status': 'ok',
+            'message': 'Compte créé avec succès. Votre clé API a été générée.',
+            'key_prefix': result['key_prefix'],
+            'api_key': result['raw_key'],
+            'plan': 'free',
+        }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+class ContactRequest(BaseModel):
+    plan: str = Field(min_length=1)
+    name: str = Field(min_length=1, max_length=200)
+    email: str = Field(min_length=3, max_length=200)
+    organization: str = Field(default='', max_length=200)
+
+
+@app.post('/contact')
+def public_contact(payload: ContactRequest) -> dict[str, Any]:
+    """Record a contact/subscription request for paid plans."""
+    # Store in a simple JSON log
+    import json
+    contact_file = Path(__file__).resolve().parent / 'data' / 'contact_requests.jsonl'
+    contact_file.parent.mkdir(parents=True, exist_ok=True)
+
+    record = {
+        'ts': datetime.utcnow().isoformat() + 'Z',
+        'plan': payload.plan,
+        'name': payload.name,
+        'email': payload.email,
+        'organization': payload.organization,
+    }
+    with open(contact_file, 'a', encoding='utf-8') as f:
+        f.write(json.dumps(record, ensure_ascii=False) + '\n')
+
+    mon_logger.info('Contact request: plan=%s name=%s email=%s', payload.plan, payload.name, payload.email)
+    return {
+        'status': 'ok',
+        'message': 'Demande enregistrée. Notre équipe vous contactera sous 24h.',
+    }
+
+
 @app.post('/analyze')
 async def analyze(
     request: Request,

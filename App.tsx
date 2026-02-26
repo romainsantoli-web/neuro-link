@@ -6,6 +6,7 @@ import { NarratorBox, LogigramType } from './components/NarratorBox';
 import { ResultsDashboard } from './components/ResultsDashboard';
 import { ChatBot } from './components/ChatBot';
 import { AdminDashboard } from './components/AdminDashboard';
+import { PricingPage } from './components/PricingPage';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { IDLE_WAVE_DATA, MOCK_REPORT_TEMPLATE } from './constants';
 import { AppState, LogEntry, DiagnosisResult } from './types';
@@ -21,6 +22,7 @@ export default function App() {
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [sessionId, setSessionId] = useState<string>(() => uuidv4());
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showPricing, setShowPricing] = useState(false);
   
   // API State
   // In production (integrated), the API is at the same origin under /api
@@ -38,6 +40,18 @@ export default function App() {
   const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   // --- AUTO-CONNECTION ON MOUNT ---
+  useEffect(() => {
+    // Secret admin shortcut: Ctrl+Shift+A
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        e.preventDefault();
+        setShowAdmin(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   useEffect(() => {
     const autoConnect = async () => {
       // 1. Try standard production path first
@@ -331,12 +345,12 @@ export default function App() {
 
                   {isApiConnected && (
                     <button
-                      onClick={() => setShowAdmin(true)}
-                      className="px-3 py-2 rounded-lg font-orbitron text-[10px] font-bold text-gray-500 border border-neon-border
-                                 hover:text-neon-cyan hover:border-neon-cyan/30 hover:bg-neon-cyan/5 transition-all duration-300"
-                      title="Administration SaaS"
+                      onClick={() => setShowPricing(true)}
+                      className="px-3 py-2 rounded-lg font-orbitron text-[10px] font-bold text-neon-cyan/70 border border-neon-cyan/20
+                                 hover:text-neon-cyan hover:border-neon-cyan/40 hover:bg-neon-cyan/5 transition-all duration-300"
+                      title="Voir les plans et tarifs"
                     >
-                      ADMIN
+                      PLANS
                     </button>
                   )}
                 </div>
@@ -444,9 +458,14 @@ export default function App() {
         } : null}
       />
 
-      {/* Admin Dashboard (overlay) */}
+      {/* Admin Dashboard (overlay — Ctrl+Shift+A) */}
       {showAdmin && (
         <AdminDashboard apiUrl={apiUrl} onClose={() => setShowAdmin(false)} />
+      )}
+
+      {/* Pricing Page (overlay) */}
+      {showPricing && (
+        <PricingPage apiUrl={apiUrl} onClose={() => setShowPricing(false)} />
       )}
     </div>
   );

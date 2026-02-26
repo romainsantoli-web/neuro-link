@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cpu, Activity, Brain, Shield } from 'lucide-react';
+import { Activity, Brain, Shield } from 'lucide-react';
 
 export const Header: React.FC = () => {
   return (
@@ -37,14 +37,6 @@ export const Header: React.FC = () => {
               SYSTEM ONLINE
             </div>
             <div className="flex items-center gap-3 text-[10px] text-gray-500 font-mono group-hover:text-gray-400 transition-colors">
-              <span className="flex items-center gap-1">
-                <Cpu className="w-3 h-3" /> GPU: T4
-              </span>
-              <span className="text-neon-border">|</span>
-              <span className="flex items-center gap-1">
-                <Brain className="w-3 h-3" /> GEMINI 3
-              </span>
-              <span className="text-neon-border">|</span>
               <span className="flex items-center gap-1">
                 <Shield className="w-3 h-3" /> AES-256
               </span>

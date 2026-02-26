@@ -423,7 +423,7 @@ class EmailAIAgent:
 
     # --- Free-form AI email composition ------------------------------------
 
-    def process_inbox(self, max_emails: int = 20, auto_reply: bool = True) -> dict[str, Any]:
+    def process_inbox(self, max_emails: int = 20, auto_reply: bool = True, auto_send: bool = False) -> dict[str, Any]:
         """Process inbox: classify all emails, auto-reply to relevant ones.
 
         Full pipeline:
@@ -432,11 +432,13 @@ class EmailAIAgent:
         3. Classify each email (spam/pub/pro/etc.)
         4. Store relevant emails in memory
         5. Auto-draft replies for professional emails
-        6. Return full processing report
+        6. If auto_send=True, send the drafted replies immediately
+        7. Return full processing report
 
         Args:
             max_emails: Max emails to fetch from Gmail
             auto_reply: Whether to auto-draft replies for relevant emails
+            auto_send: Whether to auto-send drafted replies (requires auto_reply=True)
 
         Returns:
             Dict with processed, skipped, classifications, drafts, errors
@@ -470,6 +472,7 @@ class EmailAIAgent:
                 "autre": 0,
             },
             "auto_replies_drafted": 0,
+            "auto_replies_sent": 0,
             "emails": [],
             "errors": [],
         }
@@ -531,8 +534,22 @@ class EmailAIAgent:
                 if auto_reply and is_relevant and action not in ("ignorer", "archiver"):
                     try:
                         draft = self._auto_reply(record, classification)
-                        email_result["draft_id"] = draft.get("id")
+                        draft_id = draft.get("id")
+                        email_result["draft_id"] = draft_id
                         report["auto_replies_drafted"] += 1
+
+                        # Auto-send if enabled
+                        if auto_send and draft_id:
+                            try:
+                                send_result = self.send_draft(draft_id, approve=True)
+                                email_result["sent"] = True
+                                email_result["resend_id"] = send_result.get("resend_id", "")
+                                report["auto_replies_sent"] += 1
+                            except Exception as se:
+                                email_result["sent"] = False
+                                report["errors"].append(
+                                    f"Auto-send failed for {gmail_id}: {se}"
+                                )
                     except Exception as e:
                         report["errors"].append(
                             f"Auto-reply failed for {gmail_id}: {e}"

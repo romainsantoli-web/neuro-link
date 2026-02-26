@@ -2,15 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   composeEmail, draftProspection, sendDraft, fetchInbox, queryMemory,
   listCampaignTemplates, startCampaign, getCampaignStatus, triggerCampaignCheck,
-  processInbox,
+  processInbox, fetchDrafts,
   type EmailDraft, type InboxMessage, type EmailMemoryRecord,
   type CampaignTemplate, type CampaignInstance,
-  type ProcessedEmail, type InboxProcessingReport,
+  type ProcessedEmail, type InboxProcessingReport, type DraftEmail,
 } from '../services/emailAiApi';
 import {
   Mail, Send, Brain, Inbox, Megaphone, Search, RefreshCw,
   AlertTriangle, X, Check, ChevronRight, Clock, User, FileText, Zap,
-  Shield, Filter, MailCheck, ToggleLeft, ToggleRight,
+  Shield, Filter, MailCheck, ToggleLeft, ToggleRight, Eye, Rocket,
 } from 'lucide-react';
 
 interface EmailAIDashboardProps {
@@ -18,7 +18,7 @@ interface EmailAIDashboardProps {
   token: string;
 }
 
-type Tab = 'compose' | 'prospection' | 'inbox' | 'campaigns' | 'memory';
+type Tab = 'compose' | 'prospection' | 'inbox' | 'drafts' | 'campaigns' | 'memory';
 
 const TARGET_TYPES = [
   { value: 'chu', label: 'CHU / Hôpital', emoji: '🏥' },
@@ -50,7 +50,13 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
   const [selectedInbox, setSelectedInbox] = useState<InboxMessage | null>(null);
   const [processingReport, setProcessingReport] = useState<InboxProcessingReport | null>(null);
   const [autoReply, setAutoReply] = useState(true);
+  const [autoSend, setAutoSend] = useState(false);
   const [processing, setProcessing] = useState(false);
+
+  // Drafts state
+  const [drafts, setDrafts] = useState<DraftEmail[]>([]);
+  const [selectedDraft, setSelectedDraft] = useState<DraftEmail | null>(null);
+  const [sendingDraftId, setSendingDraftId] = useState('');
 
   // Campaign state
   const [templates, setTemplates] = useState<CampaignTemplate[]>([]);
@@ -132,15 +138,50 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
     setError('');
     setProcessingReport(null);
     try {
-      const report = await processInbox(apiUrl, token, 20, autoReply);
+      const report = await processInbox(apiUrl, token, 20, autoReply, autoSend);
       setProcessingReport(report);
       // Refresh inbox list after processing
       const msgs = await fetchInbox(apiUrl, token, 20);
       setInboxMessages(msgs);
+      // Refresh drafts if auto-reply created some
+      if (report.auto_replies_drafted > 0) {
+        const d = await fetchDrafts(apiUrl, token);
+        setDrafts(d);
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
       setProcessing(false);
+    }
+  };
+
+  // ── Drafts ──
+  const loadDrafts = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const d = await fetchDrafts(apiUrl, token);
+      setDrafts(d);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [apiUrl, token]);
+
+  const handleSendDraft = async (draftId: string) => {
+    setSendingDraftId(draftId);
+    setError('');
+    try {
+      await sendDraft(apiUrl, token, draftId);
+      setSendSuccess(draftId);
+      // Remove from local list
+      setDrafts(prev => prev.filter(d => d.id !== draftId));
+      setSelectedDraft(null);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSendingDraftId('');
     }
   };
 
@@ -211,14 +252,16 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
   // Load data on tab change
   useEffect(() => {
     if (activeTab === 'inbox') loadInbox();
+    else if (activeTab === 'drafts') loadDrafts();
     else if (activeTab === 'campaigns') loadCampaigns();
     else if (activeTab === 'memory') loadMemory();
-  }, [activeTab, loadInbox, loadCampaigns, loadMemory]);
+  }, [activeTab, loadInbox, loadDrafts, loadCampaigns, loadMemory]);
 
   const tabs: { id: Tab; label: string; icon: React.FC<any> }[] = [
     { id: 'compose', label: 'COMPOSER', icon: Mail },
     { id: 'prospection', label: 'PROSPECTION', icon: Zap },
     { id: 'inbox', label: 'INBOX', icon: Inbox },
+    { id: 'drafts', label: 'BROUILLONS', icon: FileText },
     { id: 'campaigns', label: 'CAMPAGNES', icon: Megaphone },
     { id: 'memory', label: 'MÉMOIRE', icon: Brain },
   ];
@@ -381,10 +424,17 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
             <div className="flex items-center gap-2">
               {/* Auto-reply toggle */}
               <button onClick={() => setAutoReply(!autoReply)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono border border-gray-700 rounded-lg transition-colors
-                  ${autoReply ? 'text-green-400 border-green-800/50 bg-green-900/10' : 'text-gray-500 border-gray-700'}">
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono border rounded-lg transition-colors
+                  ${autoReply ? 'text-green-400 border-green-800/50 bg-green-900/10' : 'text-gray-500 border-gray-700'}`}>
                 {autoReply ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
-                Auto-réponse {autoReply ? 'ON' : 'OFF'}
+                Brouillons {autoReply ? 'ON' : 'OFF'}
+              </button>
+              {/* Auto-send toggle */}
+              <button onClick={() => setAutoSend(!autoSend)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono border rounded-lg transition-colors
+                  ${autoSend ? 'text-red-400 border-red-800/50 bg-red-900/10 animate-pulse' : 'text-gray-500 border-gray-700'}`}>
+                {autoSend ? <Rocket size={14} /> : <ToggleLeft size={14} />}
+                Envoi auto {autoSend ? 'ON' : 'OFF'}
               </button>
               {/* Process inbox button */}
               <button onClick={handleProcessInbox} disabled={processing || loading}
@@ -413,12 +463,13 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
               </div>
 
               {/* KPI cards */}
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                 {[
                   { label: 'Récupérés', value: processingReport.total_fetched, color: 'text-blue-400' },
                   { label: 'Déjà traités', value: processingReport.already_processed, color: 'text-gray-400' },
                   { label: 'Nouveaux', value: processingReport.newly_processed, color: 'text-cyan-400' },
-                  { label: 'Auto-réponses', value: processingReport.auto_replies_drafted, color: 'text-green-400' },
+                  { label: 'Brouillons', value: processingReport.auto_replies_drafted, color: 'text-green-400' },
+                  { label: 'Envoyés', value: processingReport.auto_replies_sent ?? 0, color: 'text-pink-400' },
                   { label: 'Erreurs', value: processingReport.errors.length, color: processingReport.errors.length > 0 ? 'text-red-400' : 'text-gray-500' },
                 ].map(kpi => (
                   <div key={kpi.label} className="bg-black/50 border border-gray-800 rounded-lg p-3 text-center">
@@ -574,6 +625,108 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
                 <div className="bg-[#0a0a0a] border border-gray-800 rounded-xl p-12 text-center text-gray-600 text-sm">
                   <Mail size={40} className="mx-auto mb-3 opacity-20" />
                   Sélectionnez un message pour le lire
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DRAFTS TAB ── */}
+      {activeTab === 'drafts' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-orbitron text-sm text-neon-purple tracking-wider flex items-center gap-2">
+              <FileText size={16} /> BROUILLONS ({drafts.length})
+            </h3>
+            <button onClick={loadDrafts} disabled={loading}
+              className="flex items-center gap-2 px-3 py-1.5 text-gray-400 hover:text-neon-purple border border-gray-700 rounded-lg text-xs font-mono transition-colors">
+              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> ACTUALISER
+            </button>
+          </div>
+
+          {drafts.length === 0 && !loading && (
+            <div className="text-center py-12 text-gray-500 font-mono text-sm">
+              <FileText size={40} className="mx-auto mb-3 opacity-30" />
+              Aucun brouillon en attente.
+              <br />
+              <span className="text-xs text-gray-600">Traitez votre inbox pour générer des brouillons automatiques.</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Drafts list */}
+            <div className="md:col-span-1 space-y-1 max-h-[600px] overflow-y-auto pr-1">
+              {drafts.map(draft => (
+                <button key={draft.id}
+                  onClick={() => setSelectedDraft(draft)}
+                  className={`w-full text-left p-3 rounded-lg border transition-all text-sm
+                    ${selectedDraft?.id === draft.id
+                      ? 'border-neon-purple/50 bg-purple-900/10'
+                      : 'border-gray-800 hover:border-gray-600 bg-[#0a0a0a]'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    {draft.auto_reply && (
+                      <span className="text-xs bg-green-900/40 text-green-300 px-1.5 py-0.5 rounded font-mono">AUTO</span>
+                    )}
+                    <span className="text-gray-300 truncate text-xs">{draft.to}</span>
+                  </div>
+                  <div className="text-white font-medium truncate text-xs">{draft.subject || '(sans objet)'}</div>
+                  <div className="text-gray-600 text-xs mt-1 flex items-center gap-1">
+                    <Clock size={10} /> {new Date(draft.timestamp).toLocaleString('fr-FR')}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Draft detail + send */}
+            <div className="md:col-span-2">
+              {selectedDraft ? (
+                <div className="bg-[#0a0a0a] border border-gray-800 rounded-xl p-6 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="text-white font-medium">{selectedDraft.subject || '(sans objet)'}</h4>
+                      <div className="text-gray-400 text-xs mt-1">À: {selectedDraft.to}</div>
+                      <div className="text-gray-500 text-xs">Créé: {new Date(selectedDraft.timestamp).toLocaleString('fr-FR')}</div>
+                      <div className="flex gap-2 mt-2">
+                        {selectedDraft.auto_reply && (
+                          <span className="text-xs bg-green-900/40 text-green-300 border border-green-800/40 px-2 py-0.5 rounded-full font-mono">
+                            Auto-réponse IA
+                          </span>
+                        )}
+                        {selectedDraft.target_type && (
+                          <span className="text-xs bg-purple-900/30 text-purple-300 border border-purple-800/40 px-2 py-0.5 rounded-full font-mono">
+                            {selectedDraft.target_type}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleSendDraft(selectedDraft.id)}
+                      disabled={sendingDraftId === selectedDraft.id || sendSuccess === selectedDraft.id}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-mono font-bold transition-all
+                        ${sendSuccess === selectedDraft.id
+                          ? 'bg-green-900/30 text-green-400 border border-green-800/40'
+                          : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white shadow-lg shadow-green-900/30'
+                        } disabled:opacity-50`}>
+                      {sendSuccess === selectedDraft.id ? (
+                        <><Check size={14} /> ENVOYÉ</>
+                      ) : sendingDraftId === selectedDraft.id ? (
+                        <><RefreshCw size={14} className="animate-spin" /> ENVOI...</>
+                      ) : (
+                        <><Send size={14} /> ENVOYER</>
+                      )}
+                    </button>
+                  </div>
+                  <div className="border-t border-gray-800 pt-4">
+                    <pre className="text-gray-300 text-sm font-mono whitespace-pre-wrap leading-relaxed max-h-[400px] overflow-y-auto">
+                      {selectedDraft.body}
+                    </pre>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-[#0a0a0a] border border-gray-800 rounded-xl p-12 text-center text-gray-600 text-sm">
+                  <FileText size={40} className="mx-auto mb-3 opacity-20" />
+                  Sélectionnez un brouillon pour le lire et l'envoyer
                 </div>
               )}
             </div>

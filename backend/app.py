@@ -1219,9 +1219,22 @@ def admin_email_ai_campaign_check(request: Request) -> list[dict[str, Any]]:
     return mgr.check_and_send_due()
 
 
+@app.get('/admin/email-ai/drafts')
+def admin_email_ai_drafts(request: Request) -> list[dict[str, Any]]:
+    """List all draft emails from memory."""
+    _require_admin(request)
+    from backend.email_ai_agent import EmailAIAgent
+    agent = EmailAIAgent()
+    all_records = agent.memory.get_all()
+    drafts = [r for r in all_records if r.get('type') == 'draft']
+    drafts.sort(key=lambda r: r.get('timestamp', ''), reverse=True)
+    return drafts
+
+
 class ProcessInboxPayload(BaseModel):
     max_emails: int = Field(default=20, ge=1, le=100)
     auto_reply: bool = True
+    auto_send: bool = False
 
 
 @app.post('/admin/email-ai/process-inbox')
@@ -1230,7 +1243,11 @@ def admin_email_ai_process_inbox(payload: ProcessInboxPayload, request: Request)
     _require_admin(request)
     from backend.email_ai_agent import EmailAIAgent
     agent = EmailAIAgent()
-    return agent.process_inbox(max_emails=payload.max_emails, auto_reply=payload.auto_reply)
+    return agent.process_inbox(
+        max_emails=payload.max_emails,
+        auto_reply=payload.auto_reply,
+        auto_send=payload.auto_send,
+    )
 
 
 class ClassifyEmailPayload(BaseModel):

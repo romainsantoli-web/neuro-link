@@ -264,6 +264,7 @@ export interface InboxProcessingReport {
   newly_processed: number;
   classifications: Record<string, number>;
   auto_replies_drafted: number;
+  auto_replies_sent: number;
   emails: ProcessedEmail[];
   errors: string[];
 }
@@ -273,15 +274,40 @@ export const processInbox = async (
   token: string,
   maxEmails: number = 20,
   autoReply: boolean = true,
+  autoSend: boolean = false,
 ): Promise<InboxProcessingReport> => {
   const resp = await fetch(`${normalizeBaseUrl(baseUrl)}/admin/email-ai/process-inbox`, {
     method: 'POST',
     headers: adminHeaders(token),
-    body: JSON.stringify({ max_emails: maxEmails, auto_reply: autoReply }),
+    body: JSON.stringify({ max_emails: maxEmails, auto_reply: autoReply, auto_send: autoSend }),
   });
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}));
     throw new Error(err.detail || `Process inbox: ${resp.status}`);
   }
+  return resp.json();
+};
+
+export interface DraftEmail {
+  id: string;
+  type: string;
+  to: string;
+  subject: string;
+  body: string;
+  target_type?: string;
+  auto_reply?: boolean;
+  in_reply_to?: string;
+  thread_id?: string;
+  timestamp: string;
+}
+
+export const fetchDrafts = async (
+  baseUrl: string,
+  token: string,
+): Promise<DraftEmail[]> => {
+  const resp = await fetch(`${normalizeBaseUrl(baseUrl)}/admin/email-ai/drafts`, {
+    headers: adminHeaders(token),
+  });
+  if (!resp.ok) throw new Error(`Drafts: ${resp.status}`);
   return resp.json();
 };

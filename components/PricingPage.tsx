@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Zap, Building2, GraduationCap, Check, ArrowRight, X, Sparkles } from 'lucide-react';
+import { Shield, Zap, Building2, GraduationCap, Check, ArrowRight, X, Sparkles, Radio, ExternalLink, Package } from 'lucide-react';
 
 interface PricingPageProps {
   apiUrl: string;
@@ -252,6 +252,95 @@ export const PricingPage: React.FC<PricingPageProps> = ({ apiUrl, onClose }) => 
               </button>
             </div>
           ))}
+        </div>
+
+        {/* ─── HARDWARE SECTION ─── */}
+        <div className="mx-6 mb-6">
+          <div className="border border-neon-border rounded-xl bg-neon-panel overflow-hidden">
+            <div className="flex flex-col lg:flex-row">
+              {/* Left: Info */}
+              <div className="flex-1 p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Radio className="w-4 h-4 text-neon-cyan" />
+                  <span className="font-orbitron text-[10px] tracking-[4px] text-neon-cyan uppercase">Hardware Compatible</span>
+                </div>
+                <h3 className="font-orbitron text-lg font-bold text-white tracking-wider mb-2">
+                  Casque EEG OpenBCI
+                </h3>
+                <p className="text-gray-400 text-sm mb-4 leading-relaxed">
+                  Casque EEG 16 canaux compatible Neuro-Link. Plug & play — 
+                  importez directement vos enregistrements .csv/.txt pour une analyse IA instantanée.
+                </p>
+
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Check className="w-3.5 h-3.5 text-neon-cyan flex-shrink-0" />
+                    16 canaux EEG
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Check className="w-3.5 h-3.5 text-neon-cyan flex-shrink-0" />
+                    250 Hz sampling
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Check className="w-3.5 h-3.5 text-neon-cyan flex-shrink-0" />
+                    Bluetooth / USB
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Check className="w-3.5 h-3.5 text-neon-cyan flex-shrink-0" />
+                    Open-source hardware
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Check className="w-3.5 h-3.5 text-neon-cyan flex-shrink-0" />
+                    Export .csv natif
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <Check className="w-3.5 h-3.5 text-neon-cyan flex-shrink-0" />
+                    Compatible Neuro-Link
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <a
+                    href="https://shop.openbci.com/products/ultracortex-mark-iv"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-neon-cyan text-black font-orbitron text-xs font-bold tracking-wider rounded-lg
+                               hover:shadow-glow-cyan-lg transition-all duration-300"
+                  >
+                    <Package className="w-4 h-4" />
+                    COMMANDER — $1,199
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  <a
+                    href="https://shop.openbci.com/collections/frontpage"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 border border-neon-border text-gray-400 font-orbitron text-[10px] font-bold tracking-wider rounded-lg
+                               hover:text-white hover:border-neon-border-light transition-all duration-300"
+                  >
+                    VOIR TOUS LES MODÈLES
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Right: Visual */}
+              <div className="lg:w-72 flex items-center justify-center p-6 bg-gradient-to-br from-neon-cyan/5 to-neon-purple/5 border-t lg:border-t-0 lg:border-l border-neon-border">
+                <div className="text-center">
+                  <div className="w-20 h-20 rounded-full bg-neon-cyan/10 flex items-center justify-center mx-auto mb-3 border border-neon-cyan/20">
+                    <Radio className="w-10 h-10 text-neon-cyan" />
+                  </div>
+                  <p className="font-orbitron text-2xl font-black text-white">$1,199</p>
+                  <p className="text-[10px] text-gray-500 tracking-wider mt-1">ULTRACORTEX MARK IV</p>
+                  <p className="text-[10px] text-gray-600 mt-2">Livraison mondiale</p>
+                  <div className="flex items-center justify-center gap-1 mt-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-neon-green animate-pulse"></span>
+                    <span className="text-[9px] text-neon-green font-mono">EN STOCK</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Signup Form */}

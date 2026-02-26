@@ -4,9 +4,10 @@ import {
   fetchUsageSummary,
   type ApiKeyInfo, type PlanInfo, type UsageSummary, type CreateKeyResult,
 } from '../services/adminApi';
+import { EmailAIDashboard } from './EmailAIDashboard';
 import {
   Shield, Key, Users, BarChart3, Plus, Trash2, Ban, RefreshCw,
-  ChevronUp, Copy, Check, AlertTriangle, X, Eye, EyeOff
+  ChevronUp, Copy, Check, AlertTriangle, X, Eye, EyeOff, Mail
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -14,7 +15,7 @@ interface AdminDashboardProps {
   onClose: () => void;
 }
 
-type Tab = 'overview' | 'keys' | 'create';
+type Tab = 'overview' | 'keys' | 'create' | 'email-ai';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ apiUrl, onClose }) => {
   // Auth
@@ -249,6 +250,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ apiUrl, onClose 
             { id: 'overview' as Tab, label: 'VUE D\'ENSEMBLE', icon: BarChart3 },
             { id: 'keys' as Tab, label: 'CLÉS API', icon: Key },
             { id: 'create' as Tab, label: 'NOUVELLE CLÉ', icon: Plus },
+            { id: 'email-ai' as Tab, label: 'EMAIL AI', icon: Mail },
           ]).map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded font-orbitron text-xs tracking-wider transition-all
@@ -496,7 +498,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ apiUrl, onClose 
 
             {/* Created key display */}
             {createdKey && (
-              <div className="bg-green-900/20 border border-neon-green/30 rounded-xl p-6 space-y-3">
+              <div className="bg-green-900/20 border border-green-500/30 rounded-xl p-6 space-y-3">
                 <div className="flex items-center gap-2 text-neon-green font-orbitron text-sm">
                   <Check size={16} /> CLÉ GÉNÉRÉE AVEC SUCCÈS
                 </div>
@@ -520,6 +522,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ apiUrl, onClose 
               </div>
             )}
           </div>
+        )}
+
+        {/* ── EMAIL AI TAB ── */}
+        {activeTab === 'email-ai' && (
+          <EmailAIDashboard apiUrl={apiUrl} token={token} />
         )}
       </div>
     </div>

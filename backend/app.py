@@ -1071,3 +1071,149 @@ def admin_email_log(request: Request, limit: int = 50) -> list[dict[str, Any]]:
 
     agent = EmailAgent.__new__(EmailAgent)
     return agent.get_log(limit=limit)
+
+
+# ===========================================================================
+# Email AI Agent — routes
+# ===========================================================================
+
+class EmailAIComposePayload(BaseModel):
+    instruction: str = Field(min_length=1)
+    to: str | None = None
+
+class EmailAIDraftPayload(BaseModel):
+    target_type: str = Field(min_length=1)
+    target_name: str = Field(min_length=1)
+    target_info: str = ''
+
+class EmailAIReplyPayload(BaseModel):
+    email_id: str | None = None
+    from_addr: str | None = None
+    subject: str | None = None
+    body: str | None = None
+
+class EmailAISendPayload(BaseModel):
+    draft_id: str = Field(min_length=1)
+
+class EmailAICampaignStartPayload(BaseModel):
+    campaign_id: str = Field(min_length=1)
+    to: str = Field(min_length=1)
+    target_name: str = Field(min_length=1)
+    target_info: str = ''
+
+
+@app.post('/admin/email-ai/compose')
+def admin_email_ai_compose(payload: EmailAIComposePayload, request: Request) -> dict[str, Any]:
+    """Free-form AI email composition."""
+    _require_admin(request)
+    from backend.email_ai_agent import EmailAIAgent
+    agent = EmailAIAgent()
+    draft = agent.compose(instruction=payload.instruction, to=payload.to)
+    return draft
+
+
+@app.post('/admin/email-ai/draft')
+def admin_email_ai_draft(payload: EmailAIDraftPayload, request: Request) -> dict[str, Any]:
+    """Generate a prospection draft."""
+    _require_admin(request)
+    from backend.email_ai_agent import EmailAIAgent
+    agent = EmailAIAgent()
+    draft = agent.draft_prospection(
+        target_type=payload.target_type,
+        target_name=payload.target_name,
+        target_info=payload.target_info,
+    )
+    return draft
+
+
+@app.post('/admin/email-ai/reply')
+def admin_email_ai_reply(payload: EmailAIReplyPayload, request: Request) -> dict[str, Any]:
+    """Generate an AI reply to an email."""
+    _require_admin(request)
+    from backend.email_ai_agent import EmailAIAgent
+    agent = EmailAIAgent()
+    if payload.email_id:
+        draft = agent.draft_reply(payload.email_id)
+    else:
+        email_dict = {
+            'from': payload.from_addr or '',
+            'subject': payload.subject or '',
+            'body': payload.body or '',
+        }
+        draft = agent.analyze_incoming(email_dict)
+    return draft
+
+
+@app.post('/admin/email-ai/send')
+def admin_email_ai_send(payload: EmailAISendPayload, request: Request) -> dict[str, Any]:
+    """Send an approved draft."""
+    _require_admin(request)
+    from backend.email_ai_agent import EmailAIAgent
+    agent = EmailAIAgent()
+    result = agent.send_draft(payload.draft_id, approve=True)
+    return result
+
+
+@app.get('/admin/email-ai/inbox')
+def admin_email_ai_inbox(request: Request, limit: int = 20) -> list[dict[str, Any]]:
+    """Fetch recent Gmail inbox messages."""
+    _require_admin(request)
+    from backend.gmail_reader import GmailReader
+    reader = GmailReader()
+    messages = reader.fetch_recent(max_results=limit)
+    return messages
+
+
+@app.get('/admin/email-ai/memory')
+def admin_email_ai_memory(request: Request, q: str = '', limit: int = 20) -> dict[str, Any]:
+    """Query email memory. ?q=search_term or return recent."""
+    _require_admin(request)
+    from backend.email_memory import EmailMemory
+    mem = EmailMemory()
+    if q:
+        results = mem.search(q, limit=limit)
+    else:
+        results = mem.get_recent(limit)
+    return {'query': q, 'count': len(results), 'results': results}
+
+
+@app.post('/admin/email-ai/campaign/start')
+def admin_email_ai_campaign_start(payload: EmailAICampaignStartPayload, request: Request) -> dict[str, Any]:
+    """Start a drip campaign."""
+    _require_admin(request)
+    from backend.drip_campaigns import CampaignManager
+    mgr = CampaignManager()
+    result = mgr.start_campaign(
+        campaign_id=payload.campaign_id,
+        to=payload.to,
+        target_name=payload.target_name,
+        target_info=payload.target_info,
+    )
+    return result
+
+
+@app.get('/admin/email-ai/campaign/status')
+def admin_email_ai_campaign_status(request: Request) -> list[dict[str, Any]]:
+    """Get all campaigns status."""
+    _require_admin(request)
+    from backend.drip_campaigns import CampaignManager
+    mgr = CampaignManager()
+    return mgr.get_all_campaigns_status()
+
+
+@app.get('/admin/email-ai/campaign/list')
+def admin_email_ai_campaign_list(request: Request) -> list[dict[str, Any]]:
+    """List available campaign templates."""
+    _require_admin(request)
+    from backend.drip_campaigns import CampaignManager
+    mgr = CampaignManager()
+    return mgr.list_campaigns()
+
+
+@app.post('/admin/email-ai/campaign/check')
+def admin_email_ai_campaign_check(request: Request) -> list[dict[str, Any]]:
+    """Process due campaign steps (cron trigger)."""
+    _require_admin(request)
+    from backend.drip_campaigns import CampaignManager
+    mgr = CampaignManager()
+    return mgr.check_and_send_due()

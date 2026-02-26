@@ -73,3 +73,12 @@ Thumbs.db
 # Build / deployment
 *.tar.gz
 *.zip
+
+# Email AI Agent — secrets & runtime data
+backend/data/gmail_credentials.json
+backend/data/gmail_token.json
+backend/data/email_memory.jsonl
+backend/data/email_embeddings.faiss
+backend/data/email_meta.json
+backend/data/campaign_tracker.jsonl
+backend/data/campaigns/

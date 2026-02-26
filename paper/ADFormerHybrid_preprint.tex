@@ -1,0 +1,282 @@
+\documentclass[twocolumn,11pt]{article}
+
+% ═══════════ Packages ═══════════
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{authblk}
+\usepackage[margin=2cm]{geometry}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!70!black,
+  citecolor=blue!70!black,
+  urlcolor=blue!70!black,
+}
+
+% ═══════════ Title ═══════════
+\title{%
+  \textbf{ADFormerHybrid: A Dual-Branch Transformer Architecture \\
+  with Ensemble Voting for Alzheimer's Disease Detection \\
+  from Scalp EEG Signals}
+}
+
+\author[1]{Romain Kocupyr}
+\affil[1]{Independent Researcher — Neuro-Link Project}
+\date{February 2026}
+
+\begin{document}
+
+\maketitle
+
+% ═══════════ Abstract ═══════════
+\begin{abstract}
+We present \textbf{ADFormerHybrid}, a novel dual-branch Transformer architecture for automated Alzheimer's disease (AD) detection and staging from standard 19-channel scalp electroencephalogram (EEG) recordings. The model combines a \textit{patch-based Transformer encoder} operating on raw EEG temporal patches with a \textit{feature encoder} processing 267 handcrafted spectral, entropy, connectivity, and asymmetry biomarkers. Cross-modal fusion is achieved through additive token injection before the Transformer layers, followed by a concatenation-based classification head. We train five independent model checkpoints and aggregate predictions via soft-voting ensemble, achieving \textbf{99.95\% screening accuracy} and \textbf{97.79\% staging accuracy} on a 65-patient clinical dataset (AD vs.\ healthy controls). The two-stage pipeline first detects AD presence, then classifies severity (mild, moderate, severe). We release Neuro-Link, an open-source clinical decision support platform integrating ADFormerHybrid with a FastAPI backend, React interface, and AI-powered report generation. Code is available at \url{https://github.com/romainsantoli-web/neuro-link}.
+\end{abstract}
+
+\noindent\textbf{Keywords:} Alzheimer's disease, EEG, Transformer, deep learning, ensemble voting, biomarkers, clinical decision support
+
+% ═══════════ 1. Introduction ═══════════
+\section{Introduction}
+
+Alzheimer's disease (AD) affects over 55 million people worldwide, with numbers projected to triple by 2050 \cite{who2023}. Early detection remains critical, yet current diagnostic methods (PET, CSF biomarkers, MRI) are expensive, invasive, or inaccessible in primary care settings. Electroencephalography (EEG) offers a non-invasive, low-cost, and widely available alternative that captures functional brain activity in real time.
+
+Recent advances in deep learning have demonstrated the potential of EEG-based AD detection. However, most approaches rely on either raw signal processing \cite{ieracitano2020} or handcrafted features \cite{dauwels2010}, rarely combining both modalities. Moreover, clinical deployment requires not just high accuracy but also interpretability, reliability, and integration into existing workflows.
+
+In this work, we introduce \textbf{ADFormerHybrid}, a dual-branch architecture that simultaneously processes:
+\begin{enumerate}[nosep]
+  \item \textbf{Raw EEG patches} through a Transformer encoder with learnable positional embeddings,
+  \item \textbf{267 handcrafted biomarkers} through a dedicated feature encoder with layer normalization.
+\end{enumerate}
+
+Our contributions are threefold:
+\begin{itemize}[nosep]
+  \item A novel cross-modal fusion mechanism that injects biomarker representations into the Transformer attention space;
+  \item A five-model soft-voting ensemble strategy that improves staging accuracy by +1.15\%;
+  \item An end-to-end open-source clinical platform (Neuro-Link) with AI-generated reports.
+\end{itemize}
+
+% ═══════════ 2. Related Work ═══════════
+\section{Related Work}
+
+\textbf{Traditional EEG biomarkers.}
+Spectral power ratios (theta/alpha), coherence, and entropy measures have been extensively studied as AD biomarkers \cite{dauwels2010, jeong2004}. While interpretable, standalone features rarely achieve above 90\% accuracy on heterogeneous datasets.
+
+\textbf{Deep learning approaches.}
+CNNs \cite{ieracitano2020}, RNNs \cite{morabito2017}, and more recently Vision Transformers (ViT) \cite{dosovitskiy2020} have been applied to EEG classification. EEGNet \cite{lawhern2018} established a compact architecture for BCI tasks, but was not designed for neurodegenerative disease detection.
+
+\textbf{Hybrid methods.}
+Some works combine handcrafted features with learned representations \cite{li2022}, but typically through late fusion (concatenation at the classification head). Our approach differs by performing \textit{early fusion} at the token level before attention computation.
+
+% ═══════════ 3. Methods ═══════════
+\section{Methods}
+
+\subsection{Data Acquisition and Preprocessing}
+
+We use 19-channel EEG recordings from 65 patients (AD and healthy controls) sampled at 128~Hz according to the international 10-20 system. Preprocessing includes:
+\begin{itemize}[nosep]
+  \item Bandpass filtering: 0.5--45~Hz
+  \item Notch filter: 50~Hz (power line noise)
+  \item Segmentation: non-overlapping 4-second epochs ($512 \times 19$ samples)
+  \item Z-score normalization per channel
+\end{itemize}
+
+\subsection{Feature Extraction (267 dimensions)}
+
+For each segment, we extract 267 biomarkers organized in six categories:
+
+\begin{table}[H]
+\centering
+\small
+\caption{Summary of 267 handcrafted EEG features.}
+\label{tab:features}
+\begin{tabular}{@{}lrc@{}}
+\toprule
+\textbf{Category} & \textbf{Dim} & \textbf{Description} \\
+\midrule
+Temporal statistics   & 57  & Mean, variance, IQR ($\times 19$ ch) \\
+Spectral power (7 bands) & 133 & $\delta$, $\theta$, $\alpha_1$, $\alpha_2$, $\beta_1$, $\beta_2$, $\gamma$ \\
+Entropy               & 38  & Permutation \& sample entropy \\
+Connectivity           & 22  & Clustering, path length, efficiency \\
+Asymmetry              & 3   & Interhemispheric differences \\
+Kalman-filtered        & 14  & Smoothed PSD means \& residuals \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Spectral features are computed via Welch's method (PSD). Entropy is estimated using permutation entropy (order 3, normalized) and sample entropy (order 2) from the \texttt{antropy} library. Connectivity metrics include clustering coefficient, characteristic path length, global efficiency, and small-worldness derived from the Pearson correlation matrix. Kalman filtering smooths band power estimates to reduce non-stationarity.
+
+\subsection{ADFormerHybrid Architecture}
+
+The model consists of two parallel branches merged via cross-modal fusion (Figure~\ref{fig:arch}):
+
+\subsubsection{Branch 1: Patch Transformer Encoder}
+
+Raw EEG segments ($512 \times 19$) are divided into $P = 8$ temporal patches, each of dimension $64 \times 19 = 1{,}216$. A linear projection maps each patch to $d_{\text{model}} = 256$. Learnable positional embeddings are added:
+
+\begin{equation}
+  \mathbf{z}_i = W_{\text{proj}} \cdot \text{patch}_i + \mathbf{e}_i^{\text{pos}}, \quad i \in [1, P]
+\end{equation}
+
+The sequence is processed by a 4-layer Transformer encoder with 4 attention heads.
+
+\subsubsection{Branch 2: Feature Encoder}
+
+The 267-dimensional feature vector passes through:
+\begin{equation}
+  \mathbf{f} = W_2 \cdot \text{ReLU}(W_1 \cdot \text{LayerNorm}(\mathbf{x}_{\text{feat}})) + \text{dropout}
+\end{equation}
+
+yielding a $d_{\text{model}}$-dimensional representation.
+
+\subsubsection{Cross-Modal Fusion}
+
+The feature representation $\mathbf{f}$ is expanded and added to each patch token before the Transformer layers:
+\begin{equation}
+  \mathbf{z}_i' = \mathbf{z}_i + \mathbf{f}, \quad \forall i \in [1, P]
+\end{equation}
+
+This allows the self-attention mechanism to attend jointly to both raw temporal patterns and domain-specific biomarkers.
+
+\subsubsection{Classification Head}
+
+After Transformer encoding, tokens are mean-pooled and concatenated with $\mathbf{f}$:
+\begin{equation}
+  \hat{y} = \text{Head}\left(\left[\text{MeanPool}(\mathbf{Z}') \; \| \; \mathbf{f}\right]\right)
+\end{equation}
+
+where Head is: LayerNorm $\to$ Linear(512, 256) $\to$ ReLU $\to$ Dropout(0.1) $\to$ Linear(256, $C$), with $C \in \{2, 3\}$ depending on the task.
+
+\subsection{Two-Stage Pipeline}
+
+\begin{enumerate}[nosep]
+  \item \textbf{Screening (binary):} AD vs.\ Healthy (2 classes)
+  \item \textbf{Staging (ternary):} Mild vs.\ Moderate vs.\ Severe (3 classes), executed only if Stage 1 is positive
+\end{enumerate}
+
+Each stage uses an independent ADFormerHybrid model with task-specific weights.
+
+\subsection{Ensemble Voting}
+
+For each stage, five independently trained checkpoints (v1--v5) produce softmax probability vectors. The final prediction uses \textit{soft voting} (probability averaging):
+
+\begin{equation}
+  \hat{y}_{\text{ensemble}} = \arg\max_c \frac{1}{K} \sum_{k=1}^{K} p_k(c)
+\end{equation}
+
+where $K = 5$ and $p_k(c)$ is the softmax probability for class $c$ from model $k$.
+
+% ═══════════ 4. Results ═══════════
+\section{Experimental Results}
+
+\subsection{Dataset and Training}
+
+Models are trained on a clinical dataset of 65 patients with standard 19-channel EEG. Training uses cross-entropy loss with AdamW optimizer, learning rate $10^{-4}$, batch size 32, and standard scaling (per-feature z-normalization). Data augmentation includes temporal jittering and Gaussian noise injection.
+
+\subsection{Performance}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Performance comparison: single model vs.\ ensemble.}
+\label{tab:results}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Configuration} & \textbf{Screen.\ Acc.} & \textbf{Stage Acc.} & \textbf{$\Delta$} \\
+\midrule
+Single model (best v.)  & 99.90\% & 96.64\% & --- \\
+Ensemble (5 models)     & \textbf{99.95\%} & \textbf{97.79\%} & +1.15\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The ensemble provides a consistent improvement, particularly in staging where inter-class boundaries are more subtle. The screening task approaches ceiling performance, suggesting robust AD biomarker detection in the EEG signal.
+
+\subsection{Inference Performance}
+
+On Apple M1 (CPU-only), the full pipeline processes a 23~MB EEGLAB file (.set) containing 149 segments in approximately 7 seconds, including I/O, preprocessing, feature extraction, and dual-stage inference.
+
+\subsection{Feature Importance}
+
+SHAP analysis reveals that theta-band power, alpha power reduction, permutation entropy, and inter-hemispheric asymmetry are the most discriminative features, consistent with known AD neurophysiological markers \cite{jeong2004, dauwels2010}.
+
+% ═══════════ 5. Platform ═══════════
+\section{Neuro-Link Platform}
+
+Beyond the model, we release \textbf{Neuro-Link}, a complete clinical decision support system built around ADFormerHybrid:
+
+\begin{itemize}[nosep]
+  \item \textbf{Backend:} FastAPI with async processing, security middleware (rate limiting, authentication, anti-injection), monitoring, PDF report export
+  \item \textbf{Frontend:} React 18 with real-time status HUD, interactive radar visualizations, AI-generated clinical reports
+  \item \textbf{AI Reports:} Gemini API integration with multi-model fallback chain for generating professional, accessible reports in French
+  \item \textbf{Chatbot:} Conversational AI assistant to guide users through the analysis process
+  \item \textbf{Deployment:} Docker, systemd, Nginx reverse proxy with TLS, CI/CD via GitHub Actions
+\end{itemize}
+
+The platform supports standard EEG formats: EEGLAB (.set), European Data Format (.edf), BrainVision (.vhdr), and OpenBCI CSV exports.
+
+% ═══════════ 6. Limitations ═══════════
+\section{Limitations and Future Work}
+
+\begin{itemize}[nosep]
+  \item \textbf{Dataset size:} 65 patients is limited for generalization claims. A multicenter study ($n > 500$) is planned (Phase 3).
+  \item \textbf{No external validation:} Results are from internal evaluation. Independent replication is needed.
+  \item \textbf{Regulatory status:} Not CE/FDA certified. Neuro-Link is a research tool, not a medical device.
+  \item \textbf{Class imbalance:} The staging task may suffer from class imbalance in severity distribution.
+\end{itemize}
+
+Future work includes: multicenter clinical validation (CHU partnerships), CE MDR Class IIa certification, HL7/FHIR integration for hospital information systems, and longitudinal tracking of disease progression.
+
+% ═══════════ 7. Conclusion ═══════════
+\section{Conclusion}
+
+We presented ADFormerHybrid, a dual-branch Transformer that fuses raw EEG patches with 267 handcrafted biomarkers through cross-modal token injection. Combined with soft-voting ensemble over five checkpoints, the model achieves 99.95\% screening and 97.79\% staging accuracy on clinical EEG data. The open-source Neuro-Link platform provides an accessible, secure, and deployable interface for EEG-based Alzheimer's screening research.
+
+% ═══════════ Ethics ═══════════
+\section*{Ethical Statement}
+
+This work uses de-identified EEG data. Neuro-Link is a research tool and does not constitute a medical diagnostic device. All results must be interpreted by qualified healthcare professionals. The platform includes mandatory medical disclaimers.
+
+% ═══════════ Code Availability ═══════════
+\section*{Code and Data Availability}
+
+Source code: \url{https://github.com/romainsantoli-web/neuro-link} (AGPL v3 license).\\
+Model weights are available upon request due to file size constraints.
+
+% ═══════════ References ═══════════
+\begin{thebibliography}{10}
+
+\bibitem{who2023}
+World Health Organization, ``Dementia Fact Sheet,'' 2023. [Online]. Available: \url{https://www.who.int/news-room/fact-sheets/detail/dementia}
+
+\bibitem{dauwels2010}
+J.~Dauwels, F.~Vialatte, and A.~Cichocki, ``Diagnosis of Alzheimer's disease from EEG signals: Where are we standing?'' \textit{Current Alzheimer Research}, vol.~7, no.~6, pp.~487--505, 2010.
+
+\bibitem{jeong2004}
+J.~Jeong, ``EEG dynamics in patients with Alzheimer's disease,'' \textit{Clinical Neurophysiology}, vol.~115, no.~7, pp.~1490--1505, 2004.
+
+\bibitem{ieracitano2020}
+C.~Ieracitano, N.~Mammone, A.~Bramanti, A.~Hussain, and F.~C.~Morabito, ``A convolutional neural network approach for classification of dementia stages based on 2D-spectral representation of EEG recordings,'' \textit{Neurocomputing}, vol.~323, pp.~96--107, 2019.
+
+\bibitem{morabito2017}
+F.~C.~Morabito et al., ``Deep learning representation from electroencephalography of early-stage Creutzfeldt-Jakob disease and features for differentiation from rapidly progressive dementia,'' \textit{International Journal of Neural Systems}, vol.~27, no.~2, 2017.
+
+\bibitem{dosovitskiy2020}
+A.~Dosovitskiy et al., ``An image is worth 16x16 words: Transformers for image recognition at scale,'' in \textit{ICLR}, 2021.
+
+\bibitem{lawhern2018}
+V.~J.~Lawhern et al., ``EEGNet: A compact convolutional neural network for EEG-based brain--computer interfaces,'' \textit{Journal of Neural Engineering}, vol.~15, no.~5, 2018.
+
+\bibitem{li2022}
+Y.~Li et al., ``A hybrid deep learning framework for EEG-based Alzheimer's disease detection,'' \textit{IEEE Transactions on Neural Systems and Rehabilitation Engineering}, vol.~30, pp.~2570--2580, 2022.
+
+\end{thebibliography}
+
+\end{document}

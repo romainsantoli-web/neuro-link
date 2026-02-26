@@ -98,6 +98,62 @@
       ]
     }
     </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Quelle est la précision de Neuro-Link ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Le modèle ADFormerHybrid atteint 99.95% de précision au dépistage (AD vs. Cognitively Normal) et 97.79% de confiance au staging de sévérité, grâce à un ensemble de 5 modèles Transformer indépendants."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Quel matériel EEG est compatible avec Neuro-Link ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Neuro-Link supporte 7 formats de fichier : .set (EEGLAB), .edf, .bdf (BioSemi), .vhdr (BrainVision), .fif (MNE), et .csv/.txt (OpenBCI). Les casques OpenBCI à partir de 429€ sont entièrement compatibles."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Mes données EEG sont-elles sécurisées ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui. Neuro-Link n'utilise aucun cookie de tracking, aucun outil analytique tiers. Vos données EEG ne quittent jamais votre serveur. Le code est open-source et auditable."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Faut-il un GPU pour l'analyse ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Non. Le pipeline complet (dépistage + staging) tourne en 7 secondes sur CPU (Apple M1). Aucun GPU requis. Déployable sur Oracle Cloud Always Free."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Neuro-Link est-il certifié dispositif médical ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Non. Neuro-Link est un outil d'aide à la recherche. Il ne constitue pas un diagnostic médical. La certification CE/FDA est en cours dans la Phase 3 du projet."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Le plan Recherche est-il vraiment gratuit ?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Oui, sans limite de durée. Le plan gratuit inclut 5 analyses/mois, tous les formats EEG, et le rapport clinique complet. Idéal pour la recherche académique et l'exploration."
+          }
+        }
+      ]
+    }
+    </script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -420,7 +476,120 @@
             .stat .value { font-size: 1.8rem; }
             .pipeline { flex-direction: column; }
             .pipeline-arrow { transform: rotate(90deg); }
+            .faq-grid { grid-template-columns: 1fr; }
+            .social-proof-grid { grid-template-columns: 1fr; }
         }
+
+        /* FAQ */
+        .faq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; }
+        .faq-item {
+            background: var(--card-bg);
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+        .faq-item:hover { border-color: rgba(0,255,234,0.2); }
+        .faq-item h4 {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #fff;
+            margin-bottom: 0.8rem;
+        }
+        .faq-item p { color: #94a3b8; font-size: 0.9rem; line-height: 1.6; }
+
+        /* Social Proof */
+        .social-proof-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-top: 3rem;
+        }
+        .proof-card {
+            background: var(--card-bg);
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+        }
+        .proof-card .proof-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 30px rgba(0,255,234,0.3);
+        }
+        .proof-card .proof-label {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.5rem;
+        }
+
+        /* Newsletter */
+        .newsletter-box {
+            background: linear-gradient(135deg, rgba(0,255,234,0.05), rgba(168,85,247,0.05));
+            border: 1px solid #1e293b;
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .newsletter-box input[type="email"] {
+            background: var(--dark-bg);
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 0.8rem 1.2rem;
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            width: 100%;
+            max-width: 360px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .newsletter-box input[type="email"]:focus { border-color: var(--neon-cyan); }
+        .newsletter-box .btn-subscribe {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.8rem 2rem;
+            background: var(--neon-cyan);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .newsletter-box .btn-subscribe:hover { box-shadow: 0 0 30px rgba(0,255,234,0.3); }
+
+        /* Share Buttons */
+        .share-buttons {
+            display: flex;
+            gap: 0.8rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+        }
+        .share-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 1.2rem;
+            border-radius: 6px;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: all 0.3s;
+            border: 1px solid #1e293b;
+            color: #94a3b8;
+        }
+        .share-btn:hover { border-color: var(--neon-cyan); color: #fff; transform: translateY(-2px); }
     </style>
 </head>
 <body>
@@ -620,6 +789,96 @@
             </ul>
             <a href="mailto:contact@neuro-link.ai" class="btn btn-secondary" style="width: 100%; justify-content: center;">DEMANDER UN DEVIS</a>
         </div>
+    </div>
+</section>
+
+<!-- ═══════════ SOCIAL PROOF ═══════════ -->
+<section>
+    <h2 class="section-title">NEURO-LINK EN CHIFFRES</h2>
+    <p class="section-subtitle">Une plateforme validée, performante et accessible.</p>
+
+    <div class="social-proof-grid">
+        <div class="proof-card">
+            <div class="proof-value">267</div>
+            <div class="proof-label">Features EEG analysées</div>
+        </div>
+        <div class="proof-card">
+            <div class="proof-value">5×</div>
+            <div class="proof-label">Modèles en ensemble voting</div>
+        </div>
+        <div class="proof-card">
+            <div class="proof-value">7</div>
+            <div class="proof-label">Formats EEG supportés</div>
+        </div>
+        <div class="proof-card">
+            <div class="proof-value">118</div>
+            <div class="proof-label">Tests automatisés (CI/CD)</div>
+        </div>
+        <div class="proof-card">
+            <div class="proof-value">AGPL v3</div>
+            <div class="proof-label">Open Source & Auditable</div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ FAQ ═══════════ -->
+<section>
+    <h2 class="section-title">QUESTIONS FRÉQUENTES</h2>
+    <p class="section-subtitle">Tout ce que vous devez savoir sur Neuro-Link.</p>
+
+    <div class="faq-grid">
+        <div class="faq-item">
+            <h4>🧠 Quelle est la précision de Neuro-Link ?</h4>
+            <p>Le modèle ADFormerHybrid atteint 99.95% de précision au dépistage (AD vs. Cognitively Normal) et 97.79% de confiance au staging de sévérité, grâce à un ensemble de 5 modèles Transformer indépendants.</p>
+        </div>
+        <div class="faq-item">
+            <h4>📡 Quel matériel EEG est compatible ?</h4>
+            <p>Neuro-Link supporte 7 formats de fichier : .set (EEGLAB), .edf, .bdf (BioSemi), .vhdr (BrainVision), .fif (MNE), et .csv/.txt (OpenBCI). Les casques OpenBCI à partir de 429€ sont entièrement compatibles.</p>
+        </div>
+        <div class="faq-item">
+            <h4>🔒 Mes données sont-elles sécurisées ?</h4>
+            <p>Oui. Neuro-Link n'utilise aucun cookie de tracking, aucun outil analytique tiers. Vos données EEG ne quittent jamais votre serveur. Le code est open-source et auditable.</p>
+        </div>
+        <div class="faq-item">
+            <h4>⚡ Faut-il un GPU pour l'analyse ?</h4>
+            <p>Non. Le pipeline complet (dépistage + staging) tourne en 7 secondes sur CPU (Apple M1). Aucun GPU requis. Déployable sur Oracle Cloud Always Free.</p>
+        </div>
+        <div class="faq-item">
+            <h4>🏥 Neuro-Link est-il certifié dispositif médical ?</h4>
+            <p>Non. Neuro-Link est un outil d'aide à la recherche. Il ne constitue pas un diagnostic médical. La certification CE/FDA est en cours dans la Phase 3 du projet.</p>
+        </div>
+        <div class="faq-item">
+            <h4>💰 Le plan Recherche est-il vraiment gratuit ?</h4>
+            <p>Oui, sans limite de durée. Le plan gratuit inclut 5 analyses/mois, tous les formats EEG, et le rapport clinique complet. Idéal pour la recherche académique et l'exploration.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ═══════════ NEWSLETTER ═══════════ -->
+<section>
+    <div class="newsletter-box">
+        <h2 class="section-title" style="margin-bottom: 0.8rem; font-size: 1.5rem;">RESTEZ INFORMÉ</h2>
+        <p style="color: #94a3b8; margin-bottom: 2rem; font-size: 0.95rem;">
+            Recevez les mises à jour, résultats de recherche et nouvelles fonctionnalités.
+        </p>
+        <form style="display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap;" onsubmit="event.preventDefault(); const email = this.querySelector('input').value; if(email) { fetch('/contact', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({plan:'newsletter', name:'subscriber', email:email, organization:''})}).then(() => { this.innerHTML = '<p style=&quot;color: var(--neon-cyan); font-family: Orbitron, sans-serif; font-size: 0.9rem;&quot;>✓ Inscrit ! Merci.</p>'; }).catch(() => { window.open('mailto:contact@neuro-link.ai?subject=Newsletter&body=Email: ' + email); this.innerHTML = '<p style=&quot;color: var(--neon-cyan);&quot;>✓ Merci !</p>'; }); }">
+            <input type="email" placeholder="votre@email.com" required />
+            <button type="submit" class="btn-subscribe">S'INSCRIRE →</button>
+        </form>
+        <p style="color: #475569; font-size: 0.75rem; margin-top: 1rem;">Pas de spam. Désinscription en un clic.</p>
+    </div>
+</section>
+
+<!-- ═══════════ SHARE ═══════════ -->
+<section style="padding: 3rem 2rem;">
+    <h2 class="section-title" style="font-size: 1.3rem; margin-bottom: 0.5rem;">PARTAGEZ NEURO-LINK</h2>
+    <p class="section-subtitle" style="margin-bottom: 1.5rem;">Aidez-nous à démocratiser le dépistage Alzheimer.</p>
+    <div class="share-buttons">
+        <a href="https://twitter.com/intent/tweet?text=Neuro-Link%20%E2%80%94%20D%C3%A9pistage%20Alzheimer%20par%20IA%20%26%20EEG.%2099.95%25%20de%20pr%C3%A9cision%20en%207%20secondes.%20Open-source.&url=https%3A%2F%2Fneuro-link.ai" target="_blank" class="share-btn" rel="noopener">𝕏 Twitter</a>
+        <a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fneuro-link.ai" target="_blank" class="share-btn" rel="noopener">in LinkedIn</a>
+        <a href="https://www.reddit.com/submit?url=https%3A%2F%2Fneuro-link.ai&title=Neuro-Link%20%E2%80%94%20Open-source%20Alzheimer%20detection%20from%20EEG%20(99.95%25%20accuracy)" target="_blank" class="share-btn" rel="noopener">⬆ Reddit</a>
+        <a href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fgithub.com%2Fromainsantoli-web%2Fneuro-link&t=Neuro-Link%20%E2%80%94%20Open-source%20Alzheimer%20detection%20from%20EEG" target="_blank" class="share-btn" rel="noopener">🔶 Hacker News</a>
+        <a href="mailto:?subject=Neuro-Link%20%E2%80%94%20D%C3%A9pistage%20Alzheimer%20par%20IA&body=D%C3%A9couvrez%20Neuro-Link%2C%20une%20plateforme%20open-source%20de%20d%C3%A9pistage%20Alzheimer%20par%20EEG%20et%20IA.%20https%3A%2F%2Fneuro-link.ai" class="share-btn">✉ Email</a>
     </div>
 </section>
 

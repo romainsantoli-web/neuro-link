@@ -2,12 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   composeEmail, draftProspection, sendDraft, fetchInbox, queryMemory,
   listCampaignTemplates, startCampaign, getCampaignStatus, triggerCampaignCheck,
+  processInbox,
   type EmailDraft, type InboxMessage, type EmailMemoryRecord,
   type CampaignTemplate, type CampaignInstance,
+  type ProcessedEmail, type InboxProcessingReport,
 } from '../services/emailAiApi';
 import {
   Mail, Send, Brain, Inbox, Megaphone, Search, RefreshCw,
   AlertTriangle, X, Check, ChevronRight, Clock, User, FileText, Zap,
+  Shield, Filter, MailCheck, ToggleLeft, ToggleRight,
 } from 'lucide-react';
 
 interface EmailAIDashboardProps {
@@ -45,6 +48,9 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
   // Inbox state
   const [inboxMessages, setInboxMessages] = useState<InboxMessage[]>([]);
   const [selectedInbox, setSelectedInbox] = useState<InboxMessage | null>(null);
+  const [processingReport, setProcessingReport] = useState<InboxProcessingReport | null>(null);
+  const [autoReply, setAutoReply] = useState(true);
+  const [processing, setProcessing] = useState(false);
 
   // Campaign state
   const [templates, setTemplates] = useState<CampaignTemplate[]>([]);
@@ -119,6 +125,24 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
       setLoading(false);
     }
   }, [apiUrl, token]);
+
+  // ── Process Inbox (classify + auto-reply) ──
+  const handleProcessInbox = async () => {
+    setProcessing(true);
+    setError('');
+    setProcessingReport(null);
+    try {
+      const report = await processInbox(apiUrl, token, 20, autoReply);
+      setProcessingReport(report);
+      // Refresh inbox list after processing
+      const msgs = await fetchInbox(apiUrl, token, 20);
+      setInboxMessages(msgs);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   // ── Campaigns ──
   const loadCampaigns = useCallback(async () => {
@@ -350,15 +374,147 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
       {/* ── INBOX TAB ── */}
       {activeTab === 'inbox' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <h3 className="font-orbitron text-sm text-neon-purple tracking-wider flex items-center gap-2">
               <Inbox size={16} /> INBOX GMAIL
             </h3>
-            <button onClick={loadInbox} disabled={loading}
-              className="flex items-center gap-2 px-3 py-1.5 text-gray-400 hover:text-neon-purple border border-gray-700 rounded-lg text-xs font-mono transition-colors">
-              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> ACTUALISER
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Auto-reply toggle */}
+              <button onClick={() => setAutoReply(!autoReply)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-mono border border-gray-700 rounded-lg transition-colors
+                  ${autoReply ? 'text-green-400 border-green-800/50 bg-green-900/10' : 'text-gray-500 border-gray-700'}">
+                {autoReply ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                Auto-réponse {autoReply ? 'ON' : 'OFF'}
+              </button>
+              {/* Process inbox button */}
+              <button onClick={handleProcessInbox} disabled={processing || loading}
+                className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:opacity-40 text-white rounded-lg text-xs font-mono font-bold transition-all shadow-lg shadow-purple-900/30">
+                <Brain size={12} className={processing ? 'animate-pulse' : ''} />
+                {processing ? 'TRAITEMENT...' : 'TRAITER INBOX'}
+              </button>
+              {/* Refresh button */}
+              <button onClick={loadInbox} disabled={loading}
+                className="flex items-center gap-2 px-3 py-1.5 text-gray-400 hover:text-neon-purple border border-gray-700 rounded-lg text-xs font-mono transition-colors">
+                <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> ACTUALISER
+              </button>
+            </div>
           </div>
+
+          {/* ── Processing Report ── */}
+          {processingReport && (
+            <div className="bg-[#0a0a0a] border border-purple-800/40 rounded-xl p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-orbitron text-xs text-purple-300 tracking-wider flex items-center gap-2">
+                  <Filter size={14} /> RAPPORT DE TRAITEMENT
+                </h4>
+                <button onClick={() => setProcessingReport(null)} className="text-gray-500 hover:text-gray-300">
+                  <X size={14} />
+                </button>
+              </div>
+
+              {/* KPI cards */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {[
+                  { label: 'Récupérés', value: processingReport.total_fetched, color: 'text-blue-400' },
+                  { label: 'Déjà traités', value: processingReport.already_processed, color: 'text-gray-400' },
+                  { label: 'Nouveaux', value: processingReport.newly_processed, color: 'text-cyan-400' },
+                  { label: 'Auto-réponses', value: processingReport.auto_replies_drafted, color: 'text-green-400' },
+                  { label: 'Erreurs', value: processingReport.errors.length, color: processingReport.errors.length > 0 ? 'text-red-400' : 'text-gray-500' },
+                ].map(kpi => (
+                  <div key={kpi.label} className="bg-black/50 border border-gray-800 rounded-lg p-3 text-center">
+                    <div className={`text-2xl font-bold font-mono ${kpi.color}`}>{kpi.value}</div>
+                    <div className="text-xs text-gray-500 mt-1">{kpi.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Classification breakdown */}
+              {Object.keys(processingReport.classifications).length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs text-gray-400 font-mono">CLASSIFICATIONS :</div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(processingReport.classifications).map(([cls, count]) => {
+                      const colors: Record<string, string> = {
+                        spam: 'bg-red-900/40 text-red-300 border-red-800/50',
+                        publicite: 'bg-orange-900/30 text-orange-300 border-orange-800/40',
+                        newsletter: 'bg-yellow-900/30 text-yellow-300 border-yellow-800/40',
+                        notification_auto: 'bg-gray-800/60 text-gray-400 border-gray-700',
+                        prospect_entrant: 'bg-green-900/40 text-green-300 border-green-800/50',
+                        client: 'bg-blue-900/40 text-blue-300 border-blue-800/50',
+                        partenaire: 'bg-purple-900/40 text-purple-300 border-purple-800/50',
+                        investisseur: 'bg-amber-900/40 text-amber-300 border-amber-800/50',
+                        candidature: 'bg-teal-900/40 text-teal-300 border-teal-800/50',
+                        support: 'bg-cyan-900/40 text-cyan-300 border-cyan-800/50',
+                        autre: 'bg-gray-800/50 text-gray-300 border-gray-700',
+                      };
+                      return (
+                        <span key={cls} className={`px-2.5 py-1 rounded-full text-xs font-mono border ${colors[cls] || colors.autre}`}>
+                          {cls.replace('_', ' ')} × {count}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Per-email results */}
+              {processingReport.emails.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-xs text-gray-400 font-mono">DÉTAIL DES EMAILS :</div>
+                  <div className="max-h-[300px] overflow-y-auto space-y-1.5 pr-1">
+                    {processingReport.emails.map(em => {
+                      const relevantColor = em.is_relevant ? 'border-l-green-500' : 'border-l-gray-700';
+                      const urgencyIcon = em.urgency === 'haute' ? '🔴' : em.urgency === 'moyenne' ? '🟡' : '⚪';
+                      const clsColors: Record<string, string> = {
+                        spam: 'bg-red-900/40 text-red-300',
+                        publicite: 'bg-orange-900/30 text-orange-300',
+                        newsletter: 'bg-yellow-900/30 text-yellow-300',
+                        prospect_entrant: 'bg-green-900/40 text-green-300',
+                        client: 'bg-blue-900/40 text-blue-300',
+                        partenaire: 'bg-purple-900/40 text-purple-300',
+                        investisseur: 'bg-amber-900/40 text-amber-300',
+                      };
+                      return (
+                        <div key={em.gmail_id} className={`bg-black/40 border border-gray-800 border-l-2 ${relevantColor} rounded-lg p-3 flex items-center gap-3`}>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className={`px-2 py-0.5 rounded text-xs font-mono ${clsColors[em.classification] || 'bg-gray-800 text-gray-400'}`}>
+                                {em.classification.replace('_', ' ')}
+                              </span>
+                              <span className="text-xs">{urgencyIcon}</span>
+                              {em.draft_id && (
+                                <span className="flex items-center gap-1 text-xs text-green-400">
+                                  <MailCheck size={10} /> Brouillon créé
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-white text-xs font-medium truncate">{em.subject}</div>
+                            <div className="text-gray-500 text-xs truncate">{em.from_addr}</div>
+                            <div className="text-gray-600 text-xs mt-0.5 line-clamp-1">{em.summary}</div>
+                          </div>
+                          <div className="flex-shrink-0 text-xs text-gray-600 font-mono">
+                            {em.action.replace('_', ' ')}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Errors */}
+              {processingReport.errors.length > 0 && (
+                <div className="space-y-1">
+                  <div className="text-xs text-red-400 font-mono">ERREURS :</div>
+                  {processingReport.errors.map((err, i) => (
+                    <div key={i} className="text-xs text-red-300/70 bg-red-900/10 border border-red-900/30 rounded px-3 py-1.5 font-mono">
+                      {err}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {inboxMessages.length === 0 && !loading && (
             <div className="text-center py-12 text-gray-500 font-mono text-sm">

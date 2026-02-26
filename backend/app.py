@@ -1217,3 +1217,38 @@ def admin_email_ai_campaign_check(request: Request) -> list[dict[str, Any]]:
     from backend.drip_campaigns import CampaignManager
     mgr = CampaignManager()
     return mgr.check_and_send_due()
+
+
+class ProcessInboxPayload(BaseModel):
+    max_emails: int = Field(default=20, ge=1, le=100)
+    auto_reply: bool = True
+
+
+@app.post('/admin/email-ai/process-inbox')
+def admin_email_ai_process_inbox(payload: ProcessInboxPayload, request: Request) -> dict[str, Any]:
+    """Process inbox: classify emails (spam/pub/pro), auto-reply to prospects."""
+    _require_admin(request)
+    from backend.email_ai_agent import EmailAIAgent
+    agent = EmailAIAgent()
+    return agent.process_inbox(max_emails=payload.max_emails, auto_reply=payload.auto_reply)
+
+
+class ClassifyEmailPayload(BaseModel):
+    from_addr: str = ''
+    subject: str = ''
+    body: str = ''
+    snippet: str = ''
+
+
+@app.post('/admin/email-ai/classify')
+def admin_email_ai_classify(payload: ClassifyEmailPayload, request: Request) -> dict[str, Any]:
+    """Classify a single email (spam/pub/pro/etc)."""
+    _require_admin(request)
+    from backend.email_ai_agent import EmailAIAgent
+    agent = EmailAIAgent()
+    return agent.classify_email({
+        'from_addr': payload.from_addr,
+        'subject': payload.subject,
+        'body': payload.body,
+        'snippet': payload.snippet,
+    })

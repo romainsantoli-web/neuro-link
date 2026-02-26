@@ -242,3 +242,46 @@ export const triggerCampaignCheck = async (
   if (!resp.ok) throw new Error(`Campaign check: ${resp.status}`);
   return resp.json();
 };
+
+// ── Inbox Processing ──
+
+export interface ProcessedEmail {
+  gmail_id: string;
+  from_addr: string;
+  subject: string;
+  classification: string;
+  is_relevant: boolean;
+  urgency: string;
+  action: string;
+  summary: string;
+  memory_id: string;
+  draft_id: string | null;
+}
+
+export interface InboxProcessingReport {
+  total_fetched: number;
+  already_processed: number;
+  newly_processed: number;
+  classifications: Record<string, number>;
+  auto_replies_drafted: number;
+  emails: ProcessedEmail[];
+  errors: string[];
+}
+
+export const processInbox = async (
+  baseUrl: string,
+  token: string,
+  maxEmails: number = 20,
+  autoReply: boolean = true,
+): Promise<InboxProcessingReport> => {
+  const resp = await fetch(`${normalizeBaseUrl(baseUrl)}/admin/email-ai/process-inbox`, {
+    method: 'POST',
+    headers: adminHeaders(token),
+    body: JSON.stringify({ max_emails: maxEmails, auto_reply: autoReply }),
+  });
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.detail || `Process inbox: ${resp.status}`);
+  }
+  return resp.json();
+};

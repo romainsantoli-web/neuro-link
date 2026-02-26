@@ -234,6 +234,31 @@ class EmailAIAgent:
 
     # --- Analyze incoming email --------------------------------------------
 
+    def classify_email(self, email: dict[str, Any]) -> dict[str, Any]:
+        """Classify an email: spam, pub, pro-prospect, pro-client, etc.
+
+        Fast classification without full memory load — used for batch triage.
+
+        Returns:
+            Dict with keys: classification, urgency, action, summary, target_type
+        """
+        user_msg = (
+            f"Classe cet email recu par Neuro-Link (startup depistage Alzheimer par EEG/IA):\n"
+            f"- De: {email.get('from_addr', '?')}\n"
+            f"- Sujet: {email.get('subject', '?')}\n"
+            f"- Extrait: {email.get('body', '')[:1500] or email.get('snippet', '')[:500]}\n\n"
+            f"Reponds en JSON strict avec ces cles:\n"
+            f"- classification: spam | publicite | newsletter | notification_auto | "
+            f"prospect_entrant | client | partenaire | investisseur | candidature | support | autre\n"
+            f"- is_relevant: true si c'est un email professionnel pertinent pour Neuro-Link, false sinon\n"
+            f"- urgency: haute | moyenne | basse\n"
+            f"- action: repondre_auto | repondre_manuel | ignorer | archiver | transferer\n"
+            f"- summary: resume en 1 phrase courte\n"
+            f"- target_type: chu | ehpad | neurologue | investisseur | partenaire_tech | inconnu\n"
+            f"- reply_tone: formel | collegial | enthousiaste | prudent | aucun"
+        )
+        return mistral_chat_json(SYSTEM_PROMPT, [{"role": "user", "content": user_msg}])
+
     def analyze_incoming(self, email: dict[str, Any]) -> dict[str, Any]:
         """Analyze an incoming email: classify, determine urgency, recommend action.
 
@@ -395,6 +420,192 @@ class EmailAIAgent:
         }
 
     # --- Free-form AI email composition ------------------------------------
+
+    def process_inbox(self, max_emails: int = 20, auto_reply: bool = True) -> dict[str, Any]:
+        """Process inbox: classify all emails, auto-reply to relevant ones.
+
+        Full pipeline:
+        1. Fetch recent emails from Gmail
+        2. Skip already-processed emails (check memory by gmail_id)
+        3. Classify each email (spam/pub/pro/etc.)
+        4. Store relevant emails in memory
+        5. Auto-draft replies for professional emails
+        6. Return full processing report
+
+        Args:
+            max_emails: Max emails to fetch from Gmail
+            auto_reply: Whether to auto-draft replies for relevant emails
+
+        Returns:
+            Dict with processed, skipped, classifications, drafts, errors
+        """
+        from backend.gmail_reader import GmailReader
+
+        reader = GmailReader()
+        emails = reader.fetch_recent(max_results=max_emails)
+
+        # Get already-processed gmail_ids from memory
+        all_records = self.memory.get_all()
+        processed_gmail_ids = {
+            r.get("gmail_id") for r in all_records if r.get("gmail_id")
+        }
+
+        report: dict[str, Any] = {
+            "total_fetched": len(emails),
+            "already_processed": 0,
+            "newly_processed": 0,
+            "classifications": {
+                "spam": 0,
+                "publicite": 0,
+                "newsletter": 0,
+                "notification_auto": 0,
+                "prospect_entrant": 0,
+                "client": 0,
+                "partenaire": 0,
+                "investisseur": 0,
+                "candidature": 0,
+                "support": 0,
+                "autre": 0,
+            },
+            "auto_replies_drafted": 0,
+            "emails": [],
+            "errors": [],
+        }
+
+        for email in emails:
+            gmail_id = email.get("gmail_id", "")
+
+            # Skip already processed
+            if gmail_id in processed_gmail_ids:
+                report["already_processed"] += 1
+                continue
+
+            try:
+                # Step 1: Classify
+                classification = self.classify_email(email)
+                cls = classification.get("classification", "autre")
+                is_relevant = classification.get("is_relevant", False)
+
+                # Count
+                if cls in report["classifications"]:
+                    report["classifications"][cls] += 1
+                else:
+                    report["classifications"]["autre"] += 1
+
+                # Step 2: Store in memory
+                record = {
+                    "type": "received",
+                    "gmail_id": gmail_id,
+                    "thread_id": email.get("thread_id", f"thread_{uuid.uuid4().hex[:8]}"),
+                    "from_addr": email.get("from_addr", ""),
+                    "to": email.get("to", "neuro.link013@gmail.com"),
+                    "subject": email.get("subject", ""),
+                    "body": email.get("body", "")[:3000],
+                    "date": email.get("date", ""),
+                    "classification": cls,
+                    "is_relevant": is_relevant,
+                    "analysis": classification,
+                    "target_type": classification.get("target_type", "inconnu"),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+                ingested = self.memory.ingest(record)
+
+                email_result: dict[str, Any] = {
+                    "gmail_id": gmail_id,
+                    "from_addr": email.get("from_addr", ""),
+                    "subject": email.get("subject", ""),
+                    "classification": cls,
+                    "is_relevant": is_relevant,
+                    "urgency": classification.get("urgency", "basse"),
+                    "action": classification.get("action", "ignorer"),
+                    "summary": classification.get("summary", ""),
+                    "memory_id": ingested.get("id", ""),
+                    "draft_id": None,
+                }
+
+                # Step 3: Auto-reply if relevant and action = repondre_auto
+                action = classification.get("action", "ignorer")
+                if auto_reply and is_relevant and action == "repondre_auto":
+                    try:
+                        draft = self._auto_reply(ingested, classification)
+                        email_result["draft_id"] = draft.get("id")
+                        report["auto_replies_drafted"] += 1
+                    except Exception as e:
+                        report["errors"].append(
+                            f"Auto-reply failed for {gmail_id}: {e}"
+                        )
+
+                report["emails"].append(email_result)
+                report["newly_processed"] += 1
+
+            except Exception as e:
+                report["errors"].append(f"Processing {gmail_id}: {e}")
+
+        return report
+
+    def _auto_reply(
+        self, email_record: dict[str, Any], classification: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Generate an automatic reply draft for a relevant incoming email.
+
+        Uses full memory context + classification to craft an appropriate response.
+        The draft is stored but NOT sent — requires admin approval.
+        """
+        memory_context = self.memory.load_full_context(
+            query=f"{email_record.get('from_addr', '')} {email_record.get('subject', '')}"
+        )
+
+        contact_history = self.memory.get_by_contact(email_record.get("from_addr", ""))
+        history_text = ""
+        if contact_history:
+            history_text = "\n\n--- HISTORIQUE AVEC CET EXPEDITEUR ---\n"
+            for r in contact_history[-5:]:
+                history_text += EmailMemory._format_record(r) + "\n"
+
+        target_type = classification.get("target_type", "")
+        target_ctx = TARGET_CONTEXT.get(target_type, "")
+        tone = classification.get("reply_tone", "professionnel")
+        cls = classification.get("classification", "autre")
+
+        user_msg = (
+            f"Redige une reponse professionnelle a cet email entrant.\n\n"
+            f"EMAIL RECU:\n"
+            f"- De: {email_record.get('from_addr', '?')}\n"
+            f"- Sujet: {email_record.get('subject', '?')}\n"
+            f"- Date: {email_record.get('date', '?')}\n"
+            f"- Corps:\n{email_record.get('body', '')[:2000]}\n\n"
+            f"CLASSIFICATION: {cls}\n"
+            f"TON SUGGERE: {tone}\n"
+            f"TYPE DE CONTACT: {target_type}\n\n"
+            f"MEMOIRE EMAIL:\n{memory_context}\n{history_text}\n\n"
+            f"CONTEXTE CIBLE:\n{target_ctx}\n\n"
+            f"REGLES POUR LA REPONSE:\n"
+            f"- Remercie pour l'interet porte a Neuro-Link\n"
+            f"- Reponds a ses questions / sa demande specifique\n"
+            f"- Propose une prochaine etape concrete (demo, appel, docs)\n"
+            f"- Signe au nom de Romain Kocupyr, fondateur Neuro-Link\n"
+            f"- Ne jamais promettre de diagnostic — c'est un outil d'aide au depistage\n\n"
+            f"Reponds en JSON avec les cles: subject, body"
+        )
+
+        result = mistral_chat_json(SYSTEM_PROMPT, [{"role": "user", "content": user_msg}])
+
+        draft_id = f"em_{uuid.uuid4().hex[:12]}"
+        draft = {
+            "id": draft_id,
+            "type": "draft",
+            "subject": result.get("subject", ""),
+            "body": result.get("body", ""),
+            "to": email_record.get("from_addr", ""),
+            "in_reply_to": email_record.get("id", ""),
+            "thread_id": email_record.get("thread_id", f"thread_{uuid.uuid4().hex[:8]}"),
+            "target_type": target_type,
+            "auto_reply": True,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+        self.memory.ingest(draft)
+
+        return draft
 
     def compose(self, instruction: str) -> dict[str, Any]:
         """Free-form email composition from a natural language instruction."""

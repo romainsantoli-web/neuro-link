@@ -20,6 +20,6 @@ describe('Header', () => {
 
   it('shows system online status', () => {
     render(<Header />);
-    expect(screen.getByText('SYSTEM: ONLINE')).toBeInTheDocument();
+    expect(screen.getByText('SYSTEM ONLINE')).toBeInTheDocument();
   });
 });

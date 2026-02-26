@@ -5,14 +5,34 @@ interface StatusHUDProps {
   isConnected: boolean;
 }
 
-const Card: React.FC<{ title: string; value: string; color: string; icon: React.ReactNode; animate?: boolean }> = ({ title, value, color, icon, animate }) => (
-  <div className={`bg-neon-panel border border-neon-border p-4 rounded-lg flex items-center justify-between shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] transition-all duration-500 ${animate ? 'animate-pulse' : ''}`} style={{ borderColor: `${color}40` }}>
-    <div>
-      <h4 className="text-gray-500 text-xs font-orbitron tracking-widest mb-1">{title}</h4>
-      <h2 className={`text-xl font-bold font-orbitron tracking-wide transition-colors duration-300`} style={{ color }}>{value}</h2>
+const Card: React.FC<{ title: string; value: string; color: string; icon: React.ReactNode; animate?: boolean; delay?: string }> = ({ title, value, color, icon, animate, delay = '0ms' }) => (
+  <div 
+    className={`glass-card inner-glow-cyan p-5 flex items-center gap-4 group hover:scale-[1.02] transition-all duration-300 animate-fade-in-up`}
+    style={{ animationDelay: delay }}
+  >
+    {/* Icon container */}
+    <div 
+      className={`w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 transition-all duration-300 ${animate ? 'animate-pulse-slow' : ''}`}
+      style={{ 
+        background: `linear-gradient(135deg, ${color}15, ${color}08)`,
+        border: `1px solid ${color}30`,
+        boxShadow: `0 0 15px ${color}10`
+      }}
+    >
+      <div style={{ color }} className="opacity-90 group-hover:opacity-100 transition-opacity">
+        {icon}
+      </div>
     </div>
-    <div style={{ color }} className="opacity-80">
-      {icon}
+    
+    {/* Text */}
+    <div className="min-w-0">
+      <h4 className="text-gray-500 text-[10px] font-orbitron tracking-[3px] mb-1 uppercase">{title}</h4>
+      <h2 
+        className="text-lg font-bold font-orbitron tracking-wide transition-colors duration-300 truncate"
+        style={{ color }}
+      >
+        {value}
+      </h2>
     </div>
   </div>
 );
@@ -24,26 +44,30 @@ export const StatusHUD: React.FC<StatusHUDProps> = ({ isConnected }) => {
         title="KERNEL LINK" 
         value={isConnected ? "ESTABLISHED" : "OFFLINE"} 
         color={isConnected ? "#00ffea" : "#555"} 
-        icon={isConnected ? <Terminal size={24} /> : <WifiOff size={24} />} 
+        icon={isConnected ? <Terminal size={20} /> : <WifiOff size={20} />}
+        delay="0ms"
       />
       <Card 
-        title="STORAGE / DRIVE" 
+        title="STORAGE" 
         value={isConnected ? "MOUNTED" : "UNREACHABLE"} 
         color={isConnected ? "#3fb950" : "#555"} 
-        icon={<HardDrive size={24} />} 
+        icon={<HardDrive size={20} />}
+        delay="100ms"
       />
       <Card 
         title="AI MODELS" 
         value={isConnected ? "AD-FORMER V2" : "STANDBY"} 
         color={isConnected ? "#a855f7" : "#555"} 
-        icon={<BrainCircuit size={24} />} 
+        icon={<BrainCircuit size={20} />} 
         animate={isConnected}
+        delay="200ms"
       />
       <Card 
         title="SECURITY" 
         value="ENCRYPTED" 
-        color="#ff3333" 
-        icon={<ShieldCheck size={24} />} 
+        color="#f59e0b" 
+        icon={<ShieldCheck size={20} />}
+        delay="300ms"
       />
     </div>
   );

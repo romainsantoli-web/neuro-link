@@ -1,29 +1,60 @@
 import React from 'react';
-import { Cpu, Activity, Brain } from 'lucide-react';
+import { Cpu, Activity, Brain, Shield } from 'lucide-react';
 
 export const Header: React.FC = () => {
   return (
-    <header className="flex flex-col md:flex-row justify-between items-start md:items-center py-6 px-4 mb-6 border-b border-neon-cyan/20">
-      <div>
-        <h1 className="text-5xl md:text-6xl font-orbitron font-black text-white tracking-widest leading-none">
-          NEURO-LINK <span className="text-xl text-gray-500 font-normal align-top opacity-50">v18.0</span>
-        </h1>
-        <p className="text-neon-cyan font-rajdhani font-semibold tracking-[4px] mt-2 uppercase text-sm md:text-base">
-          Advanced Alzheimer Diagnostic Interface
-        </p>
-      </div>
+    <header className="relative">
+      {/* Top accent gradient line */}
+      <div className="h-[2px] bg-gradient-to-r from-transparent via-neon-cyan to-transparent opacity-60" />
       
-      <div className="mt-4 md:mt-0 flex flex-col items-end">
-        <div className="border border-neon-cyan rounded px-4 py-2 bg-neon-cyan/5 backdrop-blur-sm group hover:bg-neon-cyan/10 transition-colors">
-          <div className="flex items-center gap-2 text-neon-cyan font-bold font-orbitron text-sm">
-            <Activity className="w-4 h-4 animate-pulse" />
-            SYSTEM: ONLINE
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center py-6 px-6 mb-6">
+        <div className="animate-fade-in-down">
+          {/* Logo / Brand */}
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-neon-cyan/20 to-neon-purple/20 border border-neon-cyan/30 flex items-center justify-center shadow-glow-cyan">
+              <Brain className="w-5 h-5 text-neon-cyan" />
+            </div>
+            <div>
+              <h1 className="text-4xl md:text-5xl font-orbitron font-black text-white tracking-widest leading-none">
+                NEURO-LINK
+                <span className="text-sm text-neon-cyan/50 font-medium align-top ml-2 tracking-normal">v18.0</span>
+              </h1>
+            </div>
           </div>
-          <div className="text-[10px] text-gray-400 font-mono text-right mt-1 flex items-center justify-end gap-1 group-hover:text-white transition-colors">
-            <Cpu className="w-3 h-3" /> GPU: T4 / <Brain className="w-3 h-3 ml-1" /> GEMINI 3 PRO
+          <p className="text-gray-400 font-rajdhani font-medium tracking-[3px] mt-2 uppercase text-xs md:text-sm ml-14">
+            Advanced Alzheimer Diagnostic Interface
+          </p>
+        </div>
+        
+        {/* System Status Badge */}
+        <div className="mt-4 md:mt-0 animate-fade-in">
+          <div className="glass-card px-5 py-3 flex flex-col items-end gap-1.5 group hover:border-neon-green/30">
+            <div className="flex items-center gap-2.5 text-neon-green font-orbitron text-xs font-bold tracking-wider">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-green opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-neon-green"></span>
+              </span>
+              SYSTEM ONLINE
+            </div>
+            <div className="flex items-center gap-3 text-[10px] text-gray-500 font-mono group-hover:text-gray-400 transition-colors">
+              <span className="flex items-center gap-1">
+                <Cpu className="w-3 h-3" /> GPU: T4
+              </span>
+              <span className="text-neon-border">|</span>
+              <span className="flex items-center gap-1">
+                <Brain className="w-3 h-3" /> GEMINI 3
+              </span>
+              <span className="text-neon-border">|</span>
+              <span className="flex items-center gap-1">
+                <Shield className="w-3 h-3" /> AES-256
+              </span>
+            </div>
           </div>
         </div>
       </div>
+      
+      {/* Bottom subtle divider */}
+      <div className="divider-gradient" />
     </header>
   );
 };

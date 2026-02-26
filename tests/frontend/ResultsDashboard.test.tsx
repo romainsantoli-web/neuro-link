@@ -39,7 +39,9 @@ describe('ResultsDashboard', () => {
   describe('Medical Disclaimer', () => {
     it('renders the medical disclaimer banner', () => {
       render(<ResultsDashboard result={alzheimerResult} />);
-      expect(screen.getByText('AVERTISSEMENT MEDICAL')).toBeInTheDocument();
+      expect(screen.getByText((content, element) => {
+        return element?.tagName === 'H4' && /AVERTISSEMENT/i.test(content);
+      })).toBeInTheDocument();
     });
 
     it('mentions research tool disclaimer', () => {
@@ -76,7 +78,7 @@ describe('ResultsDashboard', () => {
 
     it('shows DIAGNOSTIC FINAL label', () => {
       render(<ResultsDashboard result={alzheimerResult} />);
-      expect(screen.getByText('DIAGNOSTIC FINAL')).toBeInTheDocument();
+      expect(screen.getByText(/Diagnostic Final/i)).toBeInTheDocument();
     });
   });
 

@@ -284,83 +284,112 @@ export default function App() {
     <div className="min-h-screen font-rajdhani text-slate-200 pb-20">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6">
         
-        {/* API LINK BAR (Auto-hides partially when connected or acts as status) */}
-        <div className="mb-8 p-1 rounded-lg bg-gradient-to-r from-gray-800 to-gray-900 border border-gray-700 shadow-lg transition-all duration-500">
-             <div className="flex flex-col md:flex-row gap-4 items-center bg-[#050505] p-3 rounded text-sm">
-                <div className={`flex items-center gap-2 whitespace-nowrap px-2 transition-colors ${isApiConnected ? 'text-neon-green' : 'text-gray-500'}`}>
-                    {isApiConnected ? <Wifi size={18} /> : <WifiOff size={18} />}
-                    <span className="font-orbitron font-bold tracking-wider">
-                      {isApiConnected ? 'INTEGRATED KERNEL' : 'KERNEL DISCONNECTED'}
+        {/* ─── CONNECTION BAR ─── */}
+        <div className="mb-8 glass-panel animate-fade-in-down overflow-hidden">
+             <div className="flex flex-col md:flex-row gap-3 items-center p-3 text-sm">
+                {/* Status indicator */}
+                <div className={`flex items-center gap-2.5 whitespace-nowrap px-3 py-1 rounded-lg transition-all duration-300 ${isApiConnected 
+                    ? 'bg-neon-green/8 text-neon-green' 
+                    : 'text-gray-500'}`}>
+                    {isApiConnected ? <Wifi size={16} /> : <WifiOff size={16} />}
+                    <span className="font-orbitron font-bold tracking-wider text-xs">
+                      {isApiConnected ? 'KERNEL ONLINE' : 'DISCONNECTED'}
                     </span>
                 </div>
                 
-                <div className="flex-1 w-full flex items-center gap-2 border-l border-gray-800 pl-4 relative">
-                    {isAutoConnecting && <span className="absolute right-0 text-xs text-neon-cyan animate-pulse mr-4">AUTO-DETECTING...</span>}
-                    <ServerCog size={14} className="text-gray-500" />
+                {/* URL input */}
+                <div className="flex-1 w-full flex items-center gap-2 border-l border-neon-border pl-4 relative">
+                    {isAutoConnecting && (
+                      <span className="absolute right-0 text-xs text-neon-cyan animate-pulse mr-4 font-mono">
+                        AUTO-DETECTING...
+                      </span>
+                    )}
+                    <ServerCog size={14} className="text-gray-600" />
                     <input 
                         type="text" 
-                        placeholder={isApiConnected ? `Connected via ${apiUrl}` : "Enter Backend URL (default: /api)"}
-                        className="w-full bg-transparent text-white font-mono placeholder-gray-600 outline-none disabled:opacity-50"
+                        placeholder={isApiConnected ? `Connected via ${apiUrl}` : "Backend URL (default: /api)"}
+                        className="w-full bg-transparent text-white/90 font-mono text-sm placeholder-gray-600 outline-none disabled:opacity-50"
                         value={apiUrl}
                         onChange={(e) => setApiUrl(e.target.value)}
                         disabled={isAutoConnecting}
                     />
                 </div>
 
-                <button 
-                    onClick={manualConnect}
-                    disabled={!apiUrl || isAutoConnecting}
-                    className={`px-6 py-2 rounded font-orbitron font-bold transition-all duration-300 ${isApiConnected 
-                        ? 'bg-neon-green text-black shadow-[0_0_15px_rgba(63,185,80,0.4)] cursor-default' 
-                        : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white'}`}
-                >
-                    {isApiConnected ? 'ONLINE' : 'CONNECT'}
-                </button>
-
-                {isApiConnected && (
-                  <button
-                    onClick={() => setShowAdmin(true)}
-                    className="px-3 py-2 rounded font-orbitron text-xs font-bold text-gray-500 border border-gray-700
-                               hover:text-neon-cyan hover:border-neon-cyan/30 transition-all duration-300"
-                    title="Administration SaaS"
+                {/* Action buttons */}
+                <div className="flex items-center gap-2">
+                  <button 
+                      onClick={manualConnect}
+                      disabled={!apiUrl || isAutoConnecting}
+                      className={`px-5 py-2 rounded-lg font-orbitron font-bold text-xs transition-all duration-300 ${isApiConnected 
+                          ? 'bg-neon-green/15 text-neon-green border border-neon-green/25 shadow-glow-green cursor-default' 
+                          : 'bg-neon-border/30 text-gray-400 hover:bg-neon-border/50 hover:text-white border border-neon-border'}`}
                   >
-                    ADMIN
+                      {isApiConnected ? 'ONLINE' : 'CONNECT'}
                   </button>
-                )}
+
+                  {isApiConnected && (
+                    <button
+                      onClick={() => setShowAdmin(true)}
+                      className="px-3 py-2 rounded-lg font-orbitron text-[10px] font-bold text-gray-500 border border-neon-border
+                                 hover:text-neon-cyan hover:border-neon-cyan/30 hover:bg-neon-cyan/5 transition-all duration-300"
+                      title="Administration SaaS"
+                    >
+                      ADMIN
+                    </button>
+                  )}
+                </div>
              </div>
         </div>
 
-        {/* IDLE STATE: Dashboard visuals */}
+        {/* ─── IDLE STATE ─── */}
         {appState === 'IDLE' && (
           <div className="animate-fade-in">
              <StatusHUD isConnected={isApiConnected} />
                
              {/* Waveform Visualization */}
-             <div className="h-48 w-full mb-8 relative">
+             <div className="h-44 w-full mb-8 relative glass-panel overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={IDLE_WAVE_DATA}>
-                    <Line type="monotone" dataKey="alpha" stroke="#00ffea" strokeWidth={3} dot={false} animationDuration={3000} />
-                    <Line type="monotone" dataKey="theta" stroke="#a855f7" strokeWidth={2} dot={false} strokeDasharray="5 5" />
+                    <Line type="monotone" dataKey="alpha" stroke="#00ffea" strokeWidth={2} dot={false} animationDuration={3000} />
+                    <Line type="monotone" dataKey="theta" stroke="#a855f7" strokeWidth={1.5} dot={false} strokeDasharray="5 5" />
                     </LineChart>
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <h3 className="text-gray-600 font-orbitron text-xl opacity-50 tracking-[8px]">WAITING FOR INPUT</h3>
+                    <h3 className="text-gray-600 font-orbitron text-sm md:text-base opacity-40 tracking-[8px] uppercase">
+                      Awaiting Neural Data
+                    </h3>
                 </div>
+                {/* Fade edges */}
+                <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-neon-panel to-transparent pointer-events-none" />
+                <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-neon-panel to-transparent pointer-events-none" />
              </div>
 
              {/* Upload Zone */}
-             <div className="mt-12 border-2 border-dashed border-gray-700 hover:border-neon-cyan rounded-2xl p-12 transition-all duration-300 group bg-slate-900/50 relative overflow-hidden">
-                <div className="absolute inset-0 bg-neon-cyan/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+             <div className="mt-10 glass-card border-2 border-dashed border-neon-border hover:border-neon-cyan/40 p-10 md:p-14 transition-all duration-500 group relative overflow-hidden cursor-pointer animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+                {/* Background gradient on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan/[0.03] via-transparent to-neon-purple/[0.02] opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+                {/* Scan line effect on hover */}
+                <div className="absolute inset-0 overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                  <div className="absolute w-full h-px bg-gradient-to-r from-transparent via-neon-cyan/30 to-transparent" style={{ animation: 'line-scan 3s ease-in-out infinite' }} />
+                </div>
                 
                 <div className="flex flex-col items-center justify-center text-center relative z-10">
-                  <UploadCloud className="w-16 h-16 text-gray-500 group-hover:text-neon-cyan mb-4 transition-colors" />
-                  <h3 className="text-2xl font-orbitron text-white mb-2">DRAG & DROP EEG FILE (.SET / .EDF)</h3>
-                  <p className="text-gray-400 mb-6 font-mono text-sm">Supported formats: EEGLAB (.set), European Data Format (.edf)</p>
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-neon-cyan/10 to-neon-purple/10 border border-neon-border group-hover:border-neon-cyan/30 flex items-center justify-center mb-6 transition-all duration-300 group-hover:shadow-glow-cyan">
+                    <UploadCloud className="w-8 h-8 text-gray-500 group-hover:text-neon-cyan transition-colors duration-300" />
+                  </div>
+                  
+                  <h3 className="text-xl md:text-2xl font-orbitron text-white/90 mb-2 tracking-wide">
+                    DRAG & DROP EEG FILE
+                  </h3>
+                  <p className="text-gray-500 mb-8 font-mono text-xs tracking-wide">
+                    Supported: EEGLAB (.set) &bull; European Data Format (.edf)
+                  </p>
                   
                   <label className="cursor-pointer">
-                    <span className="bg-gradient-to-r from-neon-cyan to-blue-500 text-black font-orbitron font-bold py-3 px-8 rounded hover:opacity-90 transition-opacity shadow-[0_0_15px_rgba(0,255,234,0.5)]">
+                    <span className="btn-primary font-orbitron text-sm inline-flex items-center gap-2">
+                      <UploadCloud className="w-4 h-4" />
                       {isApiConnected ? 'INITIATE ANALYSIS' : 'INITIATE SIMULATION'}
                     </span>
                     <input type="file" className="hidden" accept=".set,.edf" onChange={handleFileUpload} />
@@ -370,29 +399,31 @@ export default function App() {
           </div>
         )}
 
-        {/* PROCESSING & COMPLETE STATES */}
+        {/* ─── PROCESSING & COMPLETE ─── */}
         {(appState === 'ANALYZING' || appState === 'COMPLETE') && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 animate-fade-in-up">
-            <div className="h-[350px]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 animate-fade-in-up">
+            <div className="h-[350px] animate-slide-in-left">
               <ConsoleBox logs={logs} />
             </div>
-            <div className="h-[350px]">
+            <div className="h-[350px] animate-slide-in-right">
               <NarratorBox message={narratorMessage} logigramType={logigramType} />
             </div>
           </div>
         )}
 
-        {/* RESULT DASHBOARD */}
+        {/* ─── RESULTS ─── */}
         {appState === 'COMPLETE' && result && (
-          <div className="mt-12">
+          <div className="mt-10">
             <ResultsDashboard result={result} />
             
-            <div className="mt-12 text-center">
+            <div className="mt-14 text-center">
                 <button 
                   onClick={resetAnalysis}
-                  className="text-gray-500 hover:text-white underline font-mono text-sm"
+                  className="text-gray-500 hover:text-neon-cyan font-mono text-sm transition-colors duration-300 group"
                 >
-                  START NEW SESSION
+                  <span className="border-b border-gray-700 group-hover:border-neon-cyan/30 pb-0.5">
+                    START NEW SESSION
+                  </span>
                 </button>
             </div>
           </div>

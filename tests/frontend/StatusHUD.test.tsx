@@ -42,7 +42,7 @@ describe('StatusHUD', () => {
   it('renders all 4 status cards', () => {
     render(<StatusHUD isConnected={true} />);
     expect(screen.getByText('KERNEL LINK')).toBeInTheDocument();
-    expect(screen.getByText('STORAGE / DRIVE')).toBeInTheDocument();
+    expect(screen.getByText('STORAGE')).toBeInTheDocument();
     expect(screen.getByText('AI MODELS')).toBeInTheDocument();
     expect(screen.getByText('SECURITY')).toBeInTheDocument();
   });

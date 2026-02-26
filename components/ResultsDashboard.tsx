@@ -1,7 +1,7 @@
 import React from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from 'recharts';
 import { DiagnosisResult } from '../types';
-import { FileText, Download, QrCode, ScanLine, AlertTriangle, ExternalLink } from 'lucide-react';
+import { FileText, Download, QrCode, ScanLine, AlertTriangle, ExternalLink, Shield, Activity, Brain } from 'lucide-react';
 
 interface ResultsDashboardProps {
   result: DiagnosisResult;
@@ -17,22 +17,22 @@ const XAI_DATA = [
 ];
 
 const MockXAIChart = () => (
-    <div className="w-full h-72 bg-[#0a0f1c] p-6 rounded-lg border border-slate-700 shadow-inner relative overflow-hidden group">
-        <div className="absolute top-0 right-0 p-2 opacity-50">
-            <span className="text-[10px] text-neon-cyan font-mono border border-neon-cyan px-1 rounded">XAI MODULE v2.1</span>
+    <div className="w-full h-72 glass-card inner-glow-cyan p-6 relative overflow-hidden group">
+        <div className="absolute top-3 right-3">
+            <span className="text-[9px] text-neon-cyan/60 font-mono border border-neon-border px-2 py-0.5 rounded-full">XAI v2.1</span>
         </div>
         <ResponsiveContainer width="100%" height="100%">
             <BarChart layout="vertical" data={XAI_DATA} margin={{ top: 20, right: 30, left: 40, bottom: 5 }}>
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" stroke="#94a3b8" fontSize={11} width={80} tick={{fill: '#e2e8f0', fontFamily: 'monospace'}} />
+                <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={10} width={80} tick={{fill: '#94a3b8', fontFamily: '"Share Tech Mono", monospace'}} />
                 <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f1f5f9', borderRadius: '4px' }} 
+                    contentStyle={{ backgroundColor: 'rgba(8,12,24,0.95)', borderColor: '#1e2a3a', color: '#f1f5f9', borderRadius: '8px', backdropFilter: 'blur(8px)' }} 
                     itemStyle={{ color: '#00ffea' }}
-                    cursor={{fill: 'rgba(0, 255, 234, 0.05)'}}
+                    cursor={{fill: 'rgba(0, 255, 234, 0.03)'}}
                 />
-                <Bar dataKey="val" radius={[0, 4, 4, 0]} barSize={15}>
+                <Bar dataKey="val" radius={[0, 6, 6, 0]} barSize={14}>
                   {XAI_DATA.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#00ffea' : '#a855f7'} />
+                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#00ffea' : '#a855f7'} fillOpacity={0.8} />
                   ))}
                 </Bar>
             </BarChart>
@@ -41,77 +41,71 @@ const MockXAIChart = () => (
 );
 
 const MockQRCode = () => (
-    <div className="flex flex-col items-center justify-center p-4 bg-[#0a0f1c] border border-slate-700 rounded-lg relative overflow-hidden">
-        {/* Decorative scanning line */}
-        <div className="absolute w-full h-1 bg-neon-cyan/50 top-0 left-0 animate-[scan_2s_ease-in-out_infinite] shadow-[0_0_15px_#00ffea]"></div>
+    <div className="flex flex-col items-center justify-center p-4 glass-card inner-glow-cyan relative overflow-hidden">
+        <div className="absolute w-full h-px bg-gradient-to-r from-transparent via-neon-cyan/30 to-transparent top-0 left-0 animate-[scan_2s_ease-in-out_infinite]"></div>
         
-        <div className="relative bg-white p-1.5 rounded-sm shadow-[0_0_25px_rgba(255,255,255,0.1)]">
-             <QrCode size={80} className="text-black" />
-             <div className="absolute inset-0 border-2 border-neon-cyan/30 rounded-sm"></div>
+        <div className="relative bg-white p-2 rounded-lg shadow-glow-cyan">
+             <QrCode size={72} className="text-black" />
+             <div className="absolute inset-0 border border-neon-cyan/20 rounded-lg"></div>
         </div>
         
-        <div className="mt-3 flex items-center gap-2 text-neon-cyan">
-             <ScanLine size={12} className="animate-pulse" />
-             <span className="text-[10px] font-orbitron tracking-widest">VERIFIED</span>
+        <div className="mt-3 flex items-center gap-1.5 text-neon-cyan">
+             <Shield size={10} />
+             <span className="text-[9px] font-orbitron tracking-[3px]">VERIFIED</span>
         </div>
-        <p className="text-[8px] text-gray-500 font-mono mt-1">ID: 8F92-A9B1</p>
+        <p className="text-[8px] text-gray-600 font-mono mt-1">ID: 8F92-A9B1</p>
     </div>
 );
 
 // --- Text Parsing Helper ---
 const FormattedText: React.FC<{ text: string }> = ({ text }) => {
-  // Split lines to handle headers and lists
   const lines = text.split('\n');
   
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {lines.map((line, idx) => {
         const trimmed = line.trim();
-        if (!trimmed) return <div key={idx} className="h-2" />; // Spacer
+        if (!trimmed) return <div key={idx} className="h-2" />;
 
-        // Handle Headers (###)
         if (trimmed.startsWith('###')) {
           const content = trimmed.replace(/^###\s*/, '').replace(/\*\*/g, '');
           return (
             <div key={idx} className="mt-8 mb-4">
-              <h3 className="text-2xl font-orbitron text-neon-cyan tracking-wide border-b border-gray-700 pb-2 inline-block w-full">
+              <h3 className="text-xl font-orbitron text-neon-cyan/90 tracking-wide pb-2 border-b border-neon-border/40 flex items-center gap-2">
+                <span className="w-1 h-5 bg-neon-cyan rounded-full inline-block" />
                 {content}
               </h3>
             </div>
           );
         }
 
-        // Handle Main Title / Bold headers (**Titre**) specific lines
         if (trimmed.startsWith('**') && trimmed.endsWith('**') && trimmed.length < 50) {
            const content = trimmed.replace(/\*\*/g, '');
            return (
-             <h2 key={idx} className="text-3xl font-orbitron text-white font-bold tracking-widest text-center my-6 uppercase">
+             <h2 key={idx} className="text-2xl font-orbitron text-white font-bold tracking-[4px] text-center my-8 uppercase">
                {content}
              </h2>
-           )
+           );
         }
 
-        // Handle Separators (---)
         if (trimmed.startsWith('---')) {
-          return <hr key={idx} className="border-t border-gray-800 my-6" />;
+          return <div key={idx} className="divider-gradient my-6" />;
         }
 
-        // Handle List Items (*)
         if (trimmed.startsWith('* ')) {
           const content = trimmed.replace(/^\*\s*/, '');
           return (
-            <div key={idx} className="flex items-start gap-2 ml-4">
-              <span className="text-neon-cyan mt-1.5 text-[10px]">■</span>
-              <p className="text-gray-300 text-lg leading-relaxed">
+            <div key={idx} className="flex items-start gap-3 ml-2 py-0.5">
+              <span className="text-neon-cyan/50 mt-2 text-[6px] flex-shrink-0">&#9679;</span>
+              <p className="text-gray-300/90 text-base leading-relaxed">
                 {parseBold(content)}
               </p>
             </div>
           );
         }
 
-        // Handle Standard Paragraphs
         return (
-          <p key={idx} className="text-gray-300 text-lg leading-relaxed text-justify">
+          <p key={idx} className="text-gray-300/90 text-base leading-relaxed text-justify">
             {parseBold(trimmed)}
           </p>
         );
@@ -120,12 +114,11 @@ const FormattedText: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
-// Helper to replace **text** with <strong>text</strong>
 const parseBold = (text: string) => {
   const parts = text.split(/(\*\*.*?\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={i} className="text-white font-semibold font-rajdhani">{part.slice(2, -2)}</strong>;
+      return <strong key={i} className="text-white font-semibold">{part.slice(2, -2)}</strong>;
     }
     return part;
   });
@@ -134,20 +127,22 @@ const parseBold = (text: string) => {
 
 // --- Medical Disclaimer Banner ---
 const MedicalDisclaimer: React.FC = () => (
-  <div className="bg-amber-950/40 border border-amber-500/50 rounded-xl p-5 flex items-start gap-4 mb-8 backdrop-blur-sm">
-    <AlertTriangle className="text-amber-400 w-7 h-7 flex-shrink-0 mt-0.5" />
+  <div className="glass-card border-amber-500/20 p-5 flex items-start gap-4 mb-8 animate-fade-in-up">
+    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500/15 to-amber-600/5 border border-amber-500/25 flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+      <AlertTriangle className="text-amber-400 w-5 h-5" />
+    </div>
     <div>
-      <h4 className="text-amber-400 font-orbitron text-sm tracking-widest mb-1">AVERTISSEMENT MEDICAL</h4>
-      <p className="text-amber-200/80 text-sm leading-relaxed">
-        Neuro-Link est un <strong className="text-amber-100">outil d'aide à la recherche</strong> et ne constitue en aucun cas un diagnostic médical.
-        Les résultats présentés doivent être interprétés par un professionnel de santé qualifié.
-        <span className="text-amber-400/60 ml-1">Dispositif non certifié CE/FDA.</span>
+      <h4 className="text-amber-400/90 font-orbitron text-[10px] tracking-[3px] mb-1.5">AVERTISSEMENT MÉDICAL</h4>
+      <p className="text-amber-200/60 text-sm leading-relaxed">
+        Neuro-Link est un <strong className="text-amber-200/80">outil d'aide à la recherche</strong> et ne constitue en aucun cas un diagnostic médical.
+        Les résultats doivent être interprétés par un professionnel de santé qualifié.
+        <span className="text-amber-400/40 ml-1">Dispositif non certifié CE/FDA.</span>
       </p>
     </div>
   </div>
 );
 
-// --- Ad Components for Monetization ---
+// --- Ad Components ---
 const AdBanner: React.FC<{ position: 'top' | 'sidebar' | 'bottom' }> = ({ position }) => {
   const ads: Record<string, { title: string; desc: string; cta: string; link: string }> = {
     top: {
@@ -171,20 +166,20 @@ const AdBanner: React.FC<{ position: 'top' | 'sidebar' | 'bottom' }> = ({ positi
   };
   const ad = ads[position];
   return (
-    <div className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 flex items-center justify-between gap-4 group hover:border-neon-cyan/30 transition-colors duration-300">
+    <div className="glass-panel p-4 flex items-center justify-between gap-4 group hover:border-neon-cyan/20 transition-all duration-300 relative animate-fade-in">
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-medium truncate">{ad.title}</p>
-        <p className="text-gray-400 text-xs mt-0.5 truncate">{ad.desc}</p>
+        <p className="text-white/90 text-sm font-medium truncate">{ad.title}</p>
+        <p className="text-gray-500 text-xs mt-0.5 truncate">{ad.desc}</p>
       </div>
       <a
         href={ad.link}
         target="_blank"
         rel="noopener noreferrer sponsored"
-        className="flex items-center gap-1 text-neon-cyan text-xs font-orbitron tracking-wider border border-neon-cyan/30 px-3 py-1.5 rounded hover:bg-neon-cyan/10 transition-colors flex-shrink-0"
+        className="flex items-center gap-1 text-neon-cyan/80 text-[10px] font-orbitron tracking-wider border border-neon-border px-3 py-1.5 rounded-lg hover:bg-neon-cyan/5 hover:border-neon-cyan/30 transition-all flex-shrink-0"
       >
-        {ad.cta} <ExternalLink size={10} />
+        {ad.cta} <ExternalLink size={9} />
       </a>
-      <span className="text-[8px] text-gray-600 absolute -bottom-0 right-2">sponsorisé</span>
+      <span className="text-[7px] text-gray-700 absolute bottom-1 right-3 font-mono">sponsorisé</span>
     </div>
   );
 };
@@ -199,11 +194,11 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result }) =>
     { subject: 'Delta', A: 0.4, fullMark: 1 },     
   ];
 
-  const statusColor = result.status === 'ALZHEIMER' ? '#ff3333' : '#00ffea';
-  const statusGlow = result.status === 'ALZHEIMER' ? 'shadow-[0_0_50px_rgba(255,51,51,0.3)]' : 'shadow-[0_0_50px_rgba(0,255,234,0.3)]';
+  const isPositive = result.status === 'ALZHEIMER';
+  const statusColor = isPositive ? '#ff3333' : '#00ffea';
+  const statusGlow = isPositive ? 'shadow-[0_0_40px_rgba(255,51,51,0.15)]' : 'shadow-[0_0_40px_rgba(0,255,234,0.15)]';
 
   const downloadReport = async () => {
-    // Try PDF export via backend first, fallback to TXT
     try {
       const apiBase = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
       const resp = await fetch(`${apiBase}/report/pdf`, {
@@ -243,133 +238,155 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ result }) =>
   };
 
   const renderReportContent = () => {
-    // Split by markers
     const parts = result.report.split(/(\[IMAGE_XAI\]|\[IMAGE_QR\])/g);
     
     return parts.map((part, index) => {
       if (part === '[IMAGE_XAI]') {
         return (
-           <div key={index} className="my-10 bg-black/40 p-4 border border-slate-800 rounded-xl">
+           <div key={index} className="my-8">
               <MockXAIChart />
-              <p className="text-sm text-neon-cyan font-bold tracking-widest text-center mt-4 font-orbitron uppercase">Figure 1: Importance des caractéristiques spectrales (SHAP)</p>
+              <p className="text-[10px] text-neon-cyan/60 font-orbitron tracking-[3px] text-center mt-3 uppercase">Figure 1: Importance des caractéristiques spectrales (SHAP)</p>
            </div>
         );
       }
       if (part === '[IMAGE_QR]') {
         return (
-           <div key={index} className="my-6 w-full max-w-[200px] mx-auto bg-black/40 p-3 border border-slate-800 rounded-xl flex flex-col items-center">
+           <div key={index} className="my-6 w-full max-w-[180px] mx-auto">
               <MockQRCode />
-              <p className="text-[10px] text-neon-cyan font-bold tracking-widest text-center mt-2 font-orbitron uppercase">Figure 2: Traçabilité</p>
+              <p className="text-[10px] text-neon-cyan/60 font-orbitron tracking-[3px] text-center mt-2 uppercase">Figure 2: Traçabilité</p>
            </div>
         );
       }
-      // Pass text chunks to the formatter
       return <FormattedText key={index} text={part} />;
     });
   };
 
   return (
-    <div className="animate-fade-in space-y-12">
+    <div className="animate-fade-in space-y-10">
       {/* Medical Disclaimer */}
       <MedicalDisclaimer />
 
       {/* Sponsor Banner — Top */}
       <AdBanner position="top" />
 
-      {/* Top Section: Status & 3D Radar */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      {/* ─── Top Section: Status & Radar ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
         
         {/* Status Card */}
-        <div className={`bg-black/80 border-2 rounded-2xl p-10 flex flex-col items-center justify-center text-center ${statusGlow} h-[400px]`} style={{ borderColor: statusColor }}>
-            <h3 className="text-gray-500 font-orbitron tracking-[6px] text-sm mb-6">DIAGNOSTIC FINAL</h3>
-            <h1 className="text-6xl md:text-7xl font-orbitron font-black mb-4 animate-pulse" style={{ color: statusColor }}>
-                {result.status?.replace("POSITIF (Alzheimer)", "POSITIF")}
-            </h1>
-            <h2 className="text-white font-rajdhani text-3xl font-light">{result.stage}</h2>
-            <div className="mt-8 px-6 py-2 rounded-full border border-white/20 bg-white/5 text-white font-mono text-sm tracking-widest">
-                CONFIANCE MODÈLE : {(result.confidence * 100).toFixed(1)}%
+        <div className={`glass-card p-8 md:p-10 flex flex-col items-center justify-center text-center relative overflow-hidden animate-scale-in ${statusGlow}`} style={{ borderColor: `${statusColor}20` }}>
+            {/* Background radial glow */}
+            <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 50%, ${statusColor}08 0%, transparent 70%)` }} />
+            
+            <h3 className="text-gray-500 font-orbitron tracking-[5px] text-[10px] mb-6 uppercase relative z-10">Diagnostic Final</h3>
+            
+            <div className="relative z-10 mb-4">
+              <h1 className="text-5xl md:text-6xl font-orbitron font-black tracking-wider" style={{ color: statusColor }}>
+                  {result.status?.replace("POSITIF (Alzheimer)", "POSITIF")}
+              </h1>
+            </div>
+            
+            <h2 className="text-white/80 font-rajdhani text-2xl font-light relative z-10 mb-8">{result.stage}</h2>
+            
+            {/* Confidence meter */}
+            <div className="w-full max-w-xs relative z-10">
+              <div className="flex justify-between text-[10px] font-mono text-gray-500 mb-1.5">
+                <span>CONFIANCE MODÈLE</span>
+                <span style={{ color: statusColor }}>{(result.confidence * 100).toFixed(1)}%</span>
+              </div>
+              <div className="h-1.5 bg-neon-border/30 rounded-full overflow-hidden">
+                <div 
+                  className="h-full rounded-full transition-all duration-1000"
+                  style={{ 
+                    width: `${result.confidence * 100}%`,
+                    background: `linear-gradient(90deg, ${statusColor}80, ${statusColor})`
+                  }}
+                />
+              </div>
             </div>
         </div>
 
-        {/* 3D Holographic Radar Chart */}
-        <div className="h-[400px] w-full relative flex items-center justify-center perspective-[1000px] group">
-            {/* The 3D Container */}
-            <div className="relative w-full h-full transition-transform duration-500 transform-style-3d rotate-x-25 hover:rotate-x-0 group-hover:scale-105" 
-                 style={{ transform: "perspective(1000px) rotateX(25deg)" }}>
-                
-                {/* Holographic Base Glow */}
-                <div className="absolute inset-0 bg-neon-cyan/5 rounded-full blur-[60px] transform translate-y-10 scale-75 opacity-50"></div>
-                
+        {/* Radar Chart */}
+        <div className="glass-card p-6 relative animate-scale-in overflow-hidden" style={{ animationDelay: '150ms' }}>
+            <div className="absolute top-4 right-4 text-[9px] text-neon-cyan/50 font-mono border border-neon-border px-2 py-1 rounded-full">
+                HOLOGRAPHIC VIEW
+            </div>
+            
+            {/* Holographic Base Glow */}
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3/4 h-1/3 bg-neon-cyan/[0.03] rounded-full blur-[40px]"></div>
+            
+            <div className="h-[340px] w-full" style={{ perspective: '800px' }}>
+              <div className="w-full h-full transition-transform duration-500 hover:scale-105" 
+                   style={{ transform: 'perspective(800px) rotateX(20deg)' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
-                    <PolarGrid gridType="polygon" stroke="#334155" strokeWidth={1} />
-                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#00ffea', fontFamily: 'Orbitron', fontSize: 11, letterSpacing: '1px' }} />
+                    <RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}>
+                    <PolarGrid gridType="polygon" stroke="#1e2a3a" strokeWidth={0.8} />
+                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#00ffea', fontFamily: 'Orbitron', fontSize: 9, letterSpacing: '1px' }} />
                     <PolarRadiusAxis angle={30} domain={[0, 1]} tick={false} axisLine={false} />
                     
-                    {/* Layer 1: The "Shadow/Volume" Layer */}
                     <Radar
                         name="Shadow"
                         dataKey="A"
                         stroke="transparent"
                         fill="#00ffea"
-                        fillOpacity={0.1}
-                        className="transform translate-y-2 blur-sm"
+                        fillOpacity={0.06}
                     />
-
-                    {/* Layer 2: The Main Data Layer */}
                     <Radar
                         name="Patient"
                         dataKey="A"
                         stroke="#00ffea"
-                        strokeWidth={3}
+                        strokeWidth={2}
                         fill="url(#radarGradient)"
-                        fillOpacity={0.5}
+                        fillOpacity={0.4}
                         isAnimationActive={true}
                     />
                      <defs>
                         <linearGradient id="radarGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#00ffea" stopOpacity={0.8}/>
-                          <stop offset="95%" stopColor="#00ffea" stopOpacity={0.1}/>
+                          <stop offset="5%" stopColor="#00ffea" stopOpacity={0.6}/>
+                          <stop offset="95%" stopColor="#00ffea" stopOpacity={0.05}/>
                         </linearGradient>
                       </defs>
                     </RadarChart>
                 </ResponsiveContainer>
-                 <div className="absolute top-0 right-0 text-[10px] text-neon-cyan font-mono border border-neon-cyan/50 px-2 py-1 rounded bg-black/50 backdrop-blur-sm">
-                    [3D] HOLOGRAPHIC VIEW
-                </div>
+              </div>
             </div>
         </div>
       </div>
 
-      <div className="h-px w-full bg-gradient-to-r from-transparent via-neon-cyan/30 to-transparent" />
+      <div className="divider-gradient" />
 
-      {/* Report Section */}
-      <div>
-        <div className="flex items-center gap-3 mb-8 pl-2 border-l-4 border-neon-cyan">
-            <FileText className="text-neon-cyan w-8 h-8" />
-            <h2 className="text-3xl font-orbitron font-bold text-white tracking-widest">COMPTE RENDU CLINIQUE</h2>
+      {/* ─── Report Section ─── */}
+      <div className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+        <div className="flex items-center gap-3 mb-8">
+            <div className="w-9 h-9 rounded-lg bg-neon-cyan/10 border border-neon-cyan/20 flex items-center justify-center">
+              <FileText className="text-neon-cyan w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-xl font-orbitron font-bold text-white tracking-[3px]">COMPTE RENDU CLINIQUE</h2>
+              <p className="text-[10px] text-gray-500 font-mono tracking-wider mt-0.5">AI-Generated Clinical Report</p>
+            </div>
         </div>
 
-        {/* Paper-like but futuristic container */}
-        <div className="bg-[#050505] border border-gray-800 rounded-xl p-10 lg:p-14 relative shadow-2xl overflow-hidden">
+        {/* Report container */}
+        <div className="glass-panel p-8 lg:p-12 relative overflow-hidden">
              {/* Background watermark */}
-             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-neon-cyan/5 rounded-full blur-[100px] pointer-events-none"></div>
+             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-neon-cyan/[0.02] rounded-full blur-[80px] pointer-events-none"></div>
              
              <div className="relative z-10">
                 {renderReportContent()}
              </div>
              
-             <div className="mt-12 pt-8 border-t border-gray-800 flex justify-between items-end">
-                <div className="text-gray-500 font-mono text-xs">
-                    <p>GENERATED BY NEURO-LINK AI KERNEL V18</p>
-                    <p>SECURE HASH: {Math.random().toString(36).substring(7).toUpperCase()}</p>
+             {/* Footer */}
+             <div className="mt-10 pt-6 border-t border-neon-border/30 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+                <div className="text-gray-600 font-mono text-[10px] space-y-0.5">
+                    <p className="flex items-center gap-1"><Activity size={9} /> GENERATED BY NEURO-LINK AI KERNEL V18</p>
+                    <p className="flex items-center gap-1"><Shield size={9} /> HASH: {Math.random().toString(36).substring(7).toUpperCase()}</p>
                 </div>
                 <button 
                     onClick={downloadReport}
-                    className="flex items-center gap-2 bg-white text-black hover:bg-neon-cyan font-orbitron font-bold py-3 px-8 rounded-sm transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_#00ffea]"
+                    className="btn-primary font-orbitron text-xs flex items-center gap-2"
                 >
-                    <Download size={20} />
-                    EXPORTER (.PDF/TXT)
+                    <Download size={16} />
+                    EXPORTER (.PDF)
                 </button>
              </div>
         </div>

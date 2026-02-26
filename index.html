@@ -23,16 +23,22 @@
             colors: {
               neon: {
                 cyan: '#00ffea',
+                'cyan-dim': '#00b8a9',
                 purple: '#a855f7',
+                'purple-dim': '#7c3aed',
                 green: '#3fb950',
                 red: '#ff3333',
+                amber: '#f59e0b',
                 bg: '#03070d',
-                panel: '#050505',
-                border: '#30363d'
+                panel: '#080c18',
+                'panel-alt': '#0c1225',
+                border: '#1e2a3a',
+                'border-light': '#2d3f56'
               }
             },
             animation: {
               'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
               'scan': 'scan 2s linear infinite',
             },
             keyframes: {
@@ -40,33 +46,19 @@
                 '0%': { transform: 'translateY(-100%)' },
                 '100%': { transform: 'translateY(100%)' }
               }
+            },
+            boxShadow: {
+              'glow-cyan': '0 0 20px rgba(0, 255, 234, 0.15)',
+              'glow-cyan-lg': '0 0 40px rgba(0, 255, 234, 0.2)',
+              'glow-purple': '0 0 20px rgba(168, 85, 247, 0.15)',
+              'glow-green': '0 0 20px rgba(63, 185, 80, 0.15)',
+              'glow-red': '0 0 20px rgba(255, 51, 51, 0.15)',
+              'inner-soft': 'inset 0 1px 0 rgba(255,255,255,0.04), inset 0 0 20px rgba(0,0,0,0.3)',
             }
           }
         }
       }
     </script>
-    <style>
-      body {
-        background-color: #03070d;
-        background-image: radial-gradient(circle at 50% 50%, rgba(0, 255, 234, 0.05) 0%, transparent 50%);
-        color: #e2e8f0;
-      }
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #050505; 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #30363d; 
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #00ffea; 
-      }
-    </style>
   <script type="importmap">
 {
   "imports": {

@@ -5,26 +5,26 @@ import { NarratorBox } from '../../components/NarratorBox';
 describe('NarratorBox', () => {
   it('renders the narrator message', () => {
     render(<NarratorBox message="Analyse en cours..." />);
-    expect(screen.getByText(/"Analyse en cours\.\.\."/)).toBeInTheDocument();
+    expect(screen.getByText('Analyse en cours...')).toBeInTheDocument();
   });
 
   it('shows AI INTERPRETER label', () => {
     render(<NarratorBox message="Test" />);
-    expect(screen.getByText('AI INTERPRETER')).toBeInTheDocument();
+    expect(screen.getByText(/AI Interpreter/i)).toBeInTheDocument();
   });
 
-  it('shows THINKING MODE label when type is thinking', () => {
+  it('shows THINKING label when type is thinking', () => {
     render(<NarratorBox message="Réflexion..." logigramType="thinking" />);
-    expect(screen.getByText('THINKING MODE')).toBeInTheDocument();
+    expect(screen.getByText('THINKING')).toBeInTheDocument();
   });
 
-  it('does not show THINKING MODE for default type', () => {
+  it('does not show THINKING for default type', () => {
     render(<NarratorBox message="Standby" logigramType="default" />);
-    expect(screen.queryByText('THINKING MODE')).not.toBeInTheDocument();
+    expect(screen.queryByText('THINKING')).not.toBeInTheDocument();
   });
 
-  it('does not show THINKING MODE for neural type', () => {
+  it('does not show THINKING for neural type', () => {
     render(<NarratorBox message="Processing" logigramType="neural" />);
-    expect(screen.queryByText('THINKING MODE')).not.toBeInTheDocument();
+    expect(screen.queryByText('THINKING')).not.toBeInTheDocument();
   });
 });

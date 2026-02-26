@@ -12,12 +12,12 @@ describe('ConsoleBox', () => {
 
   it('renders the KERNEL LOGS header', () => {
     render(<ConsoleBox logs={[]} />);
-    expect(screen.getByText('KERNEL LOGS')).toBeInTheDocument();
+    expect(screen.getByText(/Kernel Logs/i)).toBeInTheDocument();
   });
 
   it('renders the log path', () => {
     render(<ConsoleBox logs={[]} />);
-    expect(screen.getByText('/var/log/neuro-link.log')).toBeInTheDocument();
+    expect(screen.getByText(/\/var\/log\/neuro-link/)).toBeInTheDocument();
   });
 
   it('displays all log messages', () => {

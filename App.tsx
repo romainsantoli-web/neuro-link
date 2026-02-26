@@ -5,6 +5,7 @@ import { ConsoleBox } from './components/ConsoleBox';
 import { NarratorBox, LogigramType } from './components/NarratorBox';
 import { ResultsDashboard } from './components/ResultsDashboard';
 import { ChatBot } from './components/ChatBot';
+import { AdminDashboard } from './components/AdminDashboard';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { IDLE_WAVE_DATA, MOCK_REPORT_TEMPLATE } from './constants';
 import { AppState, LogEntry, DiagnosisResult } from './types';
@@ -19,6 +20,7 @@ export default function App() {
   const [logigramType, setLogigramType] = useState<LogigramType>('default');
   const [result, setResult] = useState<DiagnosisResult | null>(null);
   const [sessionId, setSessionId] = useState<string>(() => uuidv4());
+  const [showAdmin, setShowAdmin] = useState(false);
   
   // API State
   // In production (integrated), the API is at the same origin under /api
@@ -316,6 +318,17 @@ export default function App() {
                 >
                     {isApiConnected ? 'ONLINE' : 'CONNECT'}
                 </button>
+
+                {isApiConnected && (
+                  <button
+                    onClick={() => setShowAdmin(true)}
+                    className="px-3 py-2 rounded font-orbitron text-xs font-bold text-gray-500 border border-gray-700
+                               hover:text-neon-cyan hover:border-neon-cyan/30 transition-all duration-300"
+                    title="Administration SaaS"
+                  >
+                    ADMIN
+                  </button>
+                )}
              </div>
         </div>
 
@@ -399,6 +412,11 @@ export default function App() {
           report: result.report,
         } : null}
       />
+
+      {/* Admin Dashboard (overlay) */}
+      {showAdmin && (
+        <AdminDashboard apiUrl={apiUrl} onClose={() => setShowAdmin(false)} />
+      )}
     </div>
   );
 }

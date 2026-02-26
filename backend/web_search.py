@@ -16,6 +16,48 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
+# ── Email Extraction ────────────────────────────────────────────────────────
+
+_EMAIL_RE = re.compile(
+    r'\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b'
+)
+
+# Domains to skip (not real contact emails)
+_JUNK_EMAIL_DOMAINS = {
+    'example.com', 'example.fr', 'sentry.io', 'wixpress.com',
+    'placeholder.com', 'email.com', 'test.com', 'domain.com',
+}
+_JUNK_EMAIL_PREFIXES = {
+    'noreply', 'no-reply', 'donotreply', 'mailer-daemon',
+    'postmaster', 'webmaster', 'root', 'abuse', 'info@w3',
+}
+
+
+def extract_emails(text: str) -> list[str]:
+    """Extract unique, plausible email addresses from text.
+
+    Filters out noreply, example.com, and other junk addresses.
+    """
+    raw = set(_EMAIL_RE.findall(text))
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for email in sorted(raw):
+        email_lower = email.lower()
+        if email_lower in seen:
+            continue
+        domain = email_lower.split('@')[-1]
+        prefix = email_lower.split('@')[0]
+        if domain in _JUNK_EMAIL_DOMAINS:
+            continue
+        if any(prefix.startswith(p) for p in _JUNK_EMAIL_PREFIXES):
+            continue
+        # Skip image-like extensions that regex might catch
+        if domain.endswith(('.png', '.jpg', '.gif', '.svg', '.css', '.js')):
+            continue
+        seen.add(email_lower)
+        cleaned.append(email)
+    return cleaned
+
 # ── DuckDuckGo Search ──────────────────────────────────────────────────────
 
 def web_search(query: str, max_results: int = 8) -> list[dict[str, str]]:
@@ -51,7 +93,7 @@ def scrape_page(url: str, max_chars: int = 5000) -> dict[str, str]:
 
     Returns: {url, title, text, meta_description}
     """
-    result: dict[str, str] = {"url": url, "title": "", "text": "", "meta_description": ""}
+    result: dict[str, str] = {"url": url, "title": "", "text": "", "meta_description": "", "emails": ""}
 
     try:
         req = Request(url, headers=_HEADERS)
@@ -88,6 +130,10 @@ def scrape_page(url: str, max_chars: int = 5000) -> dict[str, str]:
     text = re.sub(r"\n{3,}", "\n\n", text)
     text = re.sub(r"[ \t]+", " ", text)
     result["text"] = text[:max_chars]
+
+    # Extract email addresses from the full page text
+    page_emails = extract_emails(html)
+    result["emails"] = ",".join(page_emails)
 
     return result
 
@@ -128,10 +174,25 @@ def research_company(
 
     # Scrape top pages for detailed info
     scraped: list[dict[str, str]] = []
+    all_emails: list[str] = []
+    seen_emails: set[str] = set()
     for r in all_results[:max_pages_to_scrape]:
         if r["url"] and not r["url"].endswith(".pdf"):
             page = scrape_page(r["url"], max_chars=3000)
             scraped.append(page)
+            # Collect emails from scraped pages
+            for email in page.get("emails", "").split(","):
+                email = email.strip()
+                if email and email.lower() not in seen_emails:
+                    seen_emails.add(email.lower())
+                    all_emails.append(email)
+
+    # Also extract emails from search snippets
+    for r in all_results:
+        for email in extract_emails(r.get("snippet", "")):
+            if email.lower() not in seen_emails:
+                seen_emails.add(email.lower())
+                all_emails.append(email)
 
     # Compile summary for the AI
     summary_parts = [
@@ -143,6 +204,11 @@ def research_company(
     summary_parts.append("--- RÉSULTATS DE RECHERCHE ---\n")
     for i, r in enumerate(all_results[:8], 1):
         summary_parts.append(f"{i}. {r['title']}\n   {r['url']}\n   {r['snippet']}\n")
+
+    if all_emails:
+        summary_parts.append("\n--- EMAILS EXTRAITS ---\n")
+        for em in all_emails:
+            summary_parts.append(f"  • {em}\n")
 
     summary_parts.append("\n--- CONTENU DES PAGES ---\n")
     for page in scraped:
@@ -161,6 +227,7 @@ def research_company(
             {"url": p["url"], "title": p["title"], "meta_description": p["meta_description"], "text_length": len(p["text"])}
             for p in scraped
         ],
+        "extracted_emails": all_emails,
         "research_summary": "".join(summary_parts),
     }
 
@@ -182,7 +249,8 @@ def _build_queries(name: str, ctype: str, extra: str) -> list[str]:
         for kw in type_keywords[ctype]:
             queries.append(f"{base} {kw}")
 
-    # Always add a generic info query
-    queries.append(f"{base} site officiel contact")
+    # Always add a contact/email search query
+    queries.append(f"{base} contact email")
+    queries.append(f"{base} site officiel")
 
     return queries

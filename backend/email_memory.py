@@ -184,6 +184,55 @@ class EmailMemory:
         all_records = self.get_all()
         return [r for r in all_records if r.get("campaign_id") == campaign_id]
 
+    def get_by_target_name(self, target_name: str) -> list[dict[str, Any]]:
+        """Get all records mentioning a specific target (by target_name field or subject/body)."""
+        all_records = self.get_all()
+        target_lower = target_name.lower()
+        results = []
+        for r in all_records:
+            tn = (r.get("target_name") or "").lower()
+            subj = (r.get("subject") or "").lower()
+            if target_lower in tn or target_lower in subj:
+                results.append(r)
+        results.sort(key=lambda r: r.get("timestamp", ""))
+        return results
+
+    def get_research_for_target(self, target_name: str) -> list[dict[str, Any]]:
+        """Get all research records for a specific target.
+
+        Returns records of type='research' that match the target_name.
+        Useful for recalling past web research before drafting prospection emails.
+        """
+        all_records = self.get_all()
+        target_lower = target_name.lower()
+        results = []
+        for r in all_records:
+            if r.get("type") != "research":
+                continue
+            tn = (r.get("target_name") or "").lower()
+            subj = (r.get("subject") or "").lower()
+            if target_lower in tn or target_lower in subj:
+                results.append(r)
+        results.sort(key=lambda r: r.get("timestamp", ""), reverse=True)
+        return results
+
+    def get_all_extracted_emails(self, target_name: str = "") -> list[str]:
+        """Get all extracted email addresses from research records.
+
+        If target_name is provided, only return emails from research on that target.
+        """
+        records = self.get_research_for_target(target_name) if target_name else [
+            r for r in self.get_all() if r.get("type") == "research"
+        ]
+        emails: list[str] = []
+        seen: set[str] = set()
+        for r in records:
+            for em in r.get("extracted_emails", []):
+                if em.lower() not in seen:
+                    seen.add(em.lower())
+                    emails.append(em)
+        return emails
+
     def get_all(self) -> list[dict[str, Any]]:
         """Load all records from JSONL."""
         if not MEMORY_FILE.exists():

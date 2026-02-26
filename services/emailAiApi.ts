@@ -145,6 +145,7 @@ export interface ResearchReport {
   company_type: string;
   search_results: SearchResult[];
   scraped_pages: ScrapedPage[];
+  extracted_emails: string[];
   research_summary: string;
   memory_id?: string;
 }

@@ -115,6 +115,80 @@ TARGET_CONTEXT = {
     ),
 }
 
+# ---------------------------------------------------------------------------
+# Tone profiles — detailed discourse guidelines per target type
+# ---------------------------------------------------------------------------
+
+TONE_PROFILES = {
+    "chu": (
+        "TON: Formel, academique, respectueux de la hierarchie hospitaliere.\n"
+        "VOUVOIEMENT: Obligatoire. Utiliser les titres (Professeur, Docteur, Madame/Monsieur le Directeur).\n"
+        "VOCABULAIRE: Medical et scientifique precis. Mentionner les publications, protocoles ethiques, CPP.\n"
+        "STRUCTURE: Introduction institutionnelle > Proposition de valeur clinique > Donnees probantes > "
+        "Proposition de RDV/visio avec references.\n"
+        "ARGUMENTS CLES: Validation multicentrique, integration DPI (FHIR R4 HL7), precision 99.95%, "
+        "protocole non-invasif (EEG), complementarite avec imagerie existante, potentiel de publication.\n"
+        "NE PAS: Etre trop commercial, utiliser du jargon startup, promettre un diagnostic.\n"
+        "SIGNATURE: Romain Kocupyr, Fondateur & CEO, Neuro-Link | Depistage IA de la maladie d'Alzheimer"
+    ),
+    "ehpad": (
+        "TON: Bienveillant, pratique, rassurant. Empathie pour les residents et les equipes.\n"
+        "VOUVOIEMENT: Obligatoire. Adresser le directeur/la directrice, le medecin coordinateur.\n"
+        "VOCABULAIRE: Accessible, eviter le jargon technique excessif. Parler de 'residents', "
+        "'accompagnement', 'qualite de vie', 'depistage precoce'.\n"
+        "STRUCTURE: Accroche humaine > Problematique concr\u00e8te > Solution simple > Impact pour "
+        "les residents et familles > Proposition de demonstration.\n"
+        "ARGUMENTS CLES: Simplicite d'utilisation, plan gratuit (Free), rapport PDF clair, "
+        "depistage non-invasif, tranquillite pour les familles, detection precoce.\n"
+        "NE PAS: Etre trop technique, mentionner les prix eleves, parler de 'staging' avance.\n"
+        "SIGNATURE: Romain Kocupyr, Fondateur, Neuro-Link | Au service du depistage precoce"
+    ),
+    "neurologue": (
+        "TON: Collegial, entre professionnels de sante. De pair a pair.\n"
+        "VOUVOIEMENT: Oui, mais ton plus decontracte que pour un CHU. 'Cher Docteur', 'Cher confrere'.\n"
+        "VOCABULAIRE: Technique mais accessible. EEG, biomarqueurs, sensibilite/specificite, "
+        "features extraction, Transformer. Montrer la competence technique.\n"
+        "STRUCTURE: Accroche par un probleme clinique commun > Solution technique > Donnees de "
+        "performance > Compatibilite materiel > Proposition d'essai gratuit.\n"
+        "ARGUMENTS CLES: Precision 99.95%, compatible casques existants (OpenBCI, BrainVision), "
+        "gain de temps (analyse en minutes), outil d'AIDE (pas de remplacement), export FHIR.\n"
+        "NE PAS: Pretendre remplacer le clinicien, etre condescendant, trop 'vendeur'.\n"
+        "SIGNATURE: Romain Kocupyr, Fondateur, Neuro-Link | Intelligence Artificielle × Neurologie"
+    ),
+    "investisseur": (
+        "TON: Business, ambitieux, data-driven. Confiant mais pas arrogant.\n"
+        "TUTOIEMENT/VOUVOIEMENT: Vouvoiement initial, sauf si l'investisseur tutoie d'abord.\n"
+        "VOCABULAIRE: Business/VC: MRR, ARR, TAM/SAM/SOM, runway, traction, moat, defensibilite, "
+        "competitive advantage, unit economics.\n"
+        "STRUCTURE: Hook percutant (marche/probleme) > Solution unique > Traction/metriques > "
+        "Marche ($30Md Alzheimer) > Equipe > Ask clair (montant, utilisation).\n"
+        "ARGUMENTS CLES: Marche colossal ($30Md), technologie unique (ADFormerHybrid), "
+        "precision inegalee (99.95%), open-source = credibilite, SaaS B2B scalable, "
+        "4 plans tarifaires, 118 tests, equipe technique solide.\n"
+        "NE PAS: Etre timide sur les chiffres, s'excuser, donner trop de details techniques.\n"
+        "SIGNATURE: Romain Kocupyr, Founder & CEO, Neuro-Link | AI-Powered Alzheimer's Screening"
+    ),
+    "partenaire_tech": (
+        "TON: Technique, collaboratif, communaute open-source. Entre ingenieurs/makers.\n"
+        "TUTOIEMENT: Acceptable si l'interlocuteur est dans le milieu tech/open-source.\n"
+        "VOCABULAIRE: Technique pur: API, SDK, BrainFlow, LSL, UDP, sampling rate, "
+        "electrode layout, AGPL v3, pull request, integration.\n"
+        "STRUCTURE: Contexte technique commun > Compatibilite existante > Proposition de "
+        "collaboration > Benefice mutuel > Repo GitHub.\n"
+        "ARGUMENTS CLES: 7 formats EEG supportes, compatibilite native OpenBCI, "
+        "open-source AGPL v3, communaute active, integration BrainFlow/LSL, "
+        "benefice mutuel (leur materiel + notre IA).\n"
+        "NE PAS: Etre trop formel, parler uniquement business, ignorer l'aspect communaute.\n"
+        "SIGNATURE: Romain Kocupyr, Founder, Neuro-Link | Open-Source Alzheimer's Detection"
+    ),
+    "default": (
+        "TON: Professionnel, courtois, adapte au contexte.\n"
+        "VOUVOIEMENT: Par defaut.\n"
+        "STRUCTURE: Introduction > Proposition de valeur > Call-to-action.\n"
+        "SIGNATURE: Romain Kocupyr, Fondateur, Neuro-Link"
+    ),
+}
+
 
 class EmailAIAgent:
     """AI-powered email agent for Neuro-Link."""
@@ -156,6 +230,7 @@ class EmailAIAgent:
             "research_summary": data.get("research_summary", ""),
             "search_results_count": len(data.get("search_results", [])),
             "scraped_pages_count": len(data.get("scraped_pages", [])),
+            "extracted_emails": data.get("extracted_emails", []),
             "extra_keywords": extra_keywords,
         }
         memory_id = self.memory.ingest(memory_record)
@@ -175,53 +250,97 @@ class EmailAIAgent:
     ) -> dict[str, Any]:
         """Draft a prospection email for a specific target.
 
-        Args:
-            target_type: One of chu, ehpad, neurologue, investisseur, partenaire_tech
-            target_name: Name of the organization/person
-            target_info: Additional info about the target
-            extra_context: Any additional context to include
-            auto_research: Whether to auto-research the target via web search
+        Smart pipeline:
+        1. Check memory for past research on this target
+        2. If no past research (or auto_research), do live web search
+        3. Collect all extracted emails from research
+        4. Load full contact history from memory
+        5. Apply target-type-specific tone profile
+        6. Draft email with Mistral AI using all context
 
         Returns:
-            Dict with keys: id, subject, body, to_suggestion, target_type, target_name, research
+            Dict with keys: id, subject, body, to, to_suggestion, target_type,
+            target_name, extracted_emails, research
         """
-        # Web research if enabled
+        # 1. Check past research from memory
+        past_research = self.memory.get_research_for_target(target_name)
+        past_research_text = ""
+        if past_research:
+            latest = past_research[0]  # most recent
+            past_research_text = (
+                f"\n\n--- RECHERCHE PRECEDENTE ({latest.get('timestamp', '?')[:16]}) ---\n"
+                f"{latest.get('research_summary', '')[:3000]}"
+            )
+
+        # 2. Live web research (or re-use past if available)
         research_text = ""
         research_data = None
         if auto_research:
             try:
                 research_data = self.research_target(target_name, target_type, target_info)
-                research_text = f"\n\nRECHERCHE WEB:\n{research_data['research_summary'][:4000]}"
+                research_text = f"\n\nRECHERCHE WEB LIVE:\n{research_data['research_summary'][:4000]}"
             except Exception as e:
                 research_text = f"\n\n[Recherche web échouée: {e}]"
+        elif past_research_text:
+            research_text = past_research_text
 
-        # Load full context from memory
+        # 3. Collect all extracted emails for this target
+        extracted_emails = self.memory.get_all_extracted_emails(target_name)
+        if research_data:
+            for em in research_data.get("extracted_emails", []):
+                if em.lower() not in {e.lower() for e in extracted_emails}:
+                    extracted_emails.append(em)
+
+        emails_text = ""
+        if extracted_emails:
+            emails_text = (
+                f"\n\n--- EMAILS EXTRAITS (trouvés lors des recherches web) ---\n"
+                + "\n".join(f"  • {em}" for em in extracted_emails)
+            )
+
+        # 4. Load full context from memory
         memory_context = self.memory.load_full_context(
             query=f"{target_type} {target_name} prospection"
         )
 
-        # Check for existing interactions with this target
+        # Check all past interactions with this target
+        target_history = self.memory.get_by_target_name(target_name)
         contact_history = self.memory.get_by_contact(target_name)
+        all_history = {r.get('id'): r for r in target_history + contact_history}
+        sorted_history = sorted(all_history.values(), key=lambda r: r.get('timestamp', ''))
+
         history_text = ""
-        if contact_history:
-            history_text = "\n\n--- HISTORIQUE AVEC CE CONTACT ---\n"
-            for r in contact_history[-5:]:
+        if sorted_history:
+            history_text = "\n\n--- HISTORIQUE COMPLET AVEC CETTE CIBLE ---\n"
+            for r in sorted_history[-8:]:
                 history_text += EmailMemory._format_record(r) + "\n"
 
+        # 5. Target-specific tone profile
         target_ctx = TARGET_CONTEXT.get(target_type, "")
+        tone_profile = TONE_PROFILES.get(target_type, TONE_PROFILES["default"])
 
+        # 6. Build the prompt
         user_msg = (
             f"Redige un email de prospection pour:\n"
             f"- Destinataire: {target_name}\n"
             f"- Type: {target_type}\n"
             f"- Infos: {target_info}\n"
             f"- Contexte supplementaire: {extra_context}\n\n"
+            f"PROFIL DE TON À ADOPTER:\n{tone_profile}\n\n"
             f"MEMOIRE EMAIL:\n{memory_context}\n{history_text}\n\n"
             f"CONTEXTE CIBLE:\n{target_ctx}\n"
-            f"{research_text}\n\n"
-            f"IMPORTANT: Utilise les informations de la recherche web pour personnaliser "
-            f"l'email. Mentionne des details concrets sur l'organisation (projets, equipes, "
-            f"actualites) pour montrer que tu connais leur travail.\n\n"
+            f"{research_text}\n"
+            f"{past_research_text if auto_research and past_research_text else ''}\n"
+            f"{emails_text}\n\n"
+            f"INSTRUCTIONS CRITIQUES:\n"
+            f"1. Utilise les informations de la recherche web pour personnaliser "
+            f"l'email. Mentionne des details concrets (projets, equipes, actualites) "
+            f"pour montrer que tu connais leur travail.\n"
+            f"2. Si des emails ont ete extraits, propose le plus pertinent comme destinataire.\n"
+            f"3. Adapte STRICTEMENT le ton au profil indique ci-dessus.\n"
+            f"4. Si un historique existe, fais reference aux echanges precedents.\n"
+            f"5. Inclus un call-to-action clair et specifique.\n"
+            f"6. Sign\u00e9 par Romain Kocupyr, Fondateur de Neuro-Link.\n\n"
             f"Reponds en JSON avec les cles: subject, body, to_suggestion"
         )
 
@@ -242,7 +361,8 @@ class EmailAIAgent:
         }
         self.memory.ingest(draft)
 
-        # Attach research data (also saved to memory via research_target)
+        # Attach research data + extracted emails
+        draft["extracted_emails"] = extracted_emails
         if research_data:
             draft["research"] = {
                 "search_results": research_data.get("search_results", [])[:6],

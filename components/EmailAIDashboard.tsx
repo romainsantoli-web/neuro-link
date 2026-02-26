@@ -508,6 +508,24 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
                   </div>
                 </div>
               )}
+
+              {/* Extracted emails */}
+              {researchReport.extracted_emails?.length > 0 && (
+                <div className="space-y-1.5 border-t border-gray-800 pt-3">
+                  <div className="text-xs text-emerald-400 font-mono flex items-center gap-1.5">
+                    <Mail size={10} /> EMAILS EXTRAITS :
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {researchReport.extracted_emails.map((email, i) => (
+                      <a key={i} href={`mailto:${email}`}
+                        className="text-xs bg-emerald-900/20 text-emerald-300 border border-emerald-800/30 px-2.5 py-1 rounded-full font-mono
+                                   hover:bg-emerald-900/40 transition-colors">
+                        {email}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -615,6 +633,29 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
                   <Brain size={14} className="text-green-400" />
                   <span className="text-green-300 font-mono">Recherche sauvegardée en mémoire</span>
                   <span className="text-green-600 font-mono">({standaloneReport.memory_id})</span>
+                </div>
+              )}
+
+              {/* Extracted emails */}
+              {standaloneReport.extracted_emails?.length > 0 && (
+                <div className="bg-[#0a0a0a] border border-emerald-800/40 rounded-xl p-5 space-y-3">
+                  <h4 className="font-orbitron text-xs text-emerald-300 tracking-wider flex items-center gap-2">
+                    <Mail size={14} /> EMAILS EXTRAITS ({standaloneReport.extracted_emails.length})
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {standaloneReport.extracted_emails.map((email, i) => (
+                      <a key={i} href={`mailto:${email}`}
+                        className="text-xs bg-emerald-900/20 text-emerald-300 border border-emerald-800/30 px-3 py-1.5 rounded-lg font-mono
+                                   hover:bg-emerald-900/40 hover:border-emerald-700/50 transition-colors flex items-center gap-1.5">
+                        <Mail size={10} />
+                        {email}
+                      </a>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-600 italic">
+                    Ces emails ont été extraits automatiquement des pages web analysées.
+                    Vérifiez leur pertinence avant utilisation.
+                  </p>
                 </div>
               )}
 

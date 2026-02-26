@@ -14,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Depends
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -45,6 +45,22 @@ MEMORY_FILE.parent.mkdir(parents=True, exist_ok=True)
 app = FastAPI(title='Neuro-Link API', version='0.1.0')
 
 from backend.monitoring import record_request, get_metrics_snapshot, logger as mon_logger
+from backend.api_keys import (
+    generate_api_key,
+    validate_key,
+    check_quota,
+    record_usage,
+    get_usage,
+    list_keys,
+    get_key_by_id,
+    update_key,
+    revoke_key,
+    delete_key,
+    get_all_usage_summary,
+    PLANS,
+)
+
+ADMIN_TOKEN = os.getenv('ADMIN_TOKEN', '').strip()
 
 cors_origins_env = os.getenv('CORS_ALLOW_ORIGINS', '*').strip()
 if SECURITY_STRICT_MODE and cors_origins_env == '*':
@@ -125,6 +141,34 @@ def _require_auth_if_enabled(request: Request) -> None:
     if auth != expected:
         _register_violation(_client_ip(request), weight=2)
         raise HTTPException(status_code=401, detail='Unauthorized')
+
+
+def _require_admin(request: Request) -> None:
+    """Require ADMIN_TOKEN for admin routes."""
+    if not ADMIN_TOKEN:
+        raise HTTPException(status_code=503, detail='Admin API not configured (set ADMIN_TOKEN env var)')
+    auth = request.headers.get('authorization', '')
+    if auth != f'Bearer {ADMIN_TOKEN}':
+        _register_violation(_client_ip(request), weight=2)
+        raise HTTPException(status_code=401, detail='Admin authorization required')
+
+
+def _get_api_key_info(request: Request) -> dict[str, Any] | None:
+    """
+    Extract and validate API key from X-API-Key header.
+    Returns key info dict or None if no key provided.
+    Raises 401/403 if key is invalid or quota exceeded.
+    """
+    api_key = request.headers.get('x-api-key', '').strip()
+    if not api_key:
+        return None
+
+    key_info = validate_key(api_key)
+    if key_info is None:
+        _register_violation(_client_ip(request), weight=2)
+        raise HTTPException(status_code=401, detail='Invalid API key')
+
+    return key_info
 
 
 @app.middleware('http')
@@ -257,6 +301,16 @@ async def analyze(
 ) -> dict[str, Any]:
     _require_auth_if_enabled(request)
 
+    # ── API Key auth + quota check ──
+    key_info = _get_api_key_info(request)
+    if key_info:
+        quota = check_quota(key_info['id'], key_info['plan'], endpoint='/analyze')
+        if not quota['allowed']:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Quota mensuel atteint ({quota['used']}/{quota['limit']} analyses). Passez au plan supérieur.",
+            )
+
     if not PIPELINE_SCRIPT.exists():
         raise HTTPException(status_code=500, detail=f'Pipeline script not found: {PIPELINE_SCRIPT}')
 
@@ -337,6 +391,10 @@ async def analyze(
     except Exception as exc:
         import logging
         logging.getLogger('neuro-link').warning('Gemini report generation failed: %s', exc)
+
+    # ── Track API key usage ──
+    if key_info:
+        record_usage(key_info['id'], endpoint='/analyze', is_analysis=True)
 
     return {
         'status': status,
@@ -534,3 +592,134 @@ def report_pdf(payload: PdfReportRequest, request: Request):
         media_type='application/pdf',
         headers={'Content-Disposition': f'attachment; filename="neuro-link-report.pdf"'},
     )
+
+
+# ═══════════ Admin – API Key Management (SaaS) ═══════════
+
+class CreateKeyRequest(BaseModel):
+    owner: str = Field(min_length=1, max_length=200)
+    email: str = Field(default='', max_length=200)
+    plan: str = Field(default='free')
+
+
+class UpdateKeyRequest(BaseModel):
+    plan: str | None = None
+    active: bool | None = None
+    owner: str | None = None
+    email: str | None = None
+
+
+@app.get('/admin/plans')
+def admin_plans(request: Request) -> dict[str, Any]:
+    """List available SaaS plans and their quotas."""
+    _require_admin(request)
+    return {'plans': PLANS}
+
+
+@app.post('/admin/keys')
+def admin_create_key(payload: CreateKeyRequest, request: Request) -> dict[str, Any]:
+    """Generate a new API key for a client."""
+    _require_admin(request)
+    try:
+        result = generate_api_key(owner=payload.owner, email=payload.email, plan=payload.plan)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return result
+
+
+@app.get('/admin/keys')
+def admin_list_keys(request: Request, include_inactive: bool = False) -> dict[str, Any]:
+    """List all API keys with usage info."""
+    _require_admin(request)
+    keys = list_keys(include_inactive=include_inactive)
+    return {'keys': keys, 'count': len(keys)}
+
+
+@app.get('/admin/keys/{key_id}')
+def admin_get_key(key_id: int, request: Request) -> dict[str, Any]:
+    """Get details for a specific API key."""
+    _require_admin(request)
+    key = get_key_by_id(key_id)
+    if not key:
+        raise HTTPException(status_code=404, detail='API key not found')
+    usage = get_usage(key_id)
+    key['usage'] = usage
+    key['plan_info'] = PLANS.get(key['plan'], PLANS['free'])
+    return key
+
+
+@app.patch('/admin/keys/{key_id}')
+def admin_update_key(key_id: int, payload: UpdateKeyRequest, request: Request) -> dict[str, Any]:
+    """Update an API key (plan, status, owner, email)."""
+    _require_admin(request)
+    try:
+        success = update_key(
+            key_id,
+            plan=payload.plan,
+            active=payload.active,
+            owner=payload.owner,
+            email=payload.email,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    if not success:
+        raise HTTPException(status_code=404, detail='API key not found or no changes')
+    return {'status': 'ok', 'key_id': key_id}
+
+
+@app.post('/admin/keys/{key_id}/revoke')
+def admin_revoke_key(key_id: int, request: Request) -> dict[str, Any]:
+    """Revoke (deactivate) an API key."""
+    _require_admin(request)
+    if not revoke_key(key_id):
+        raise HTTPException(status_code=404, detail='API key not found')
+    return {'status': 'revoked', 'key_id': key_id}
+
+
+@app.delete('/admin/keys/{key_id}')
+def admin_delete_key(key_id: int, request: Request) -> dict[str, Any]:
+    """Permanently delete an API key and its usage data."""
+    _require_admin(request)
+    if not delete_key(key_id):
+        raise HTTPException(status_code=404, detail='API key not found')
+    return {'status': 'deleted', 'key_id': key_id}
+
+
+@app.get('/admin/keys/{key_id}/usage')
+def admin_key_usage(key_id: int, request: Request, month: str | None = None) -> dict[str, Any]:
+    """Get usage details for a specific API key."""
+    _require_admin(request)
+    key = get_key_by_id(key_id)
+    if not key:
+        raise HTTPException(status_code=404, detail='API key not found')
+    return get_usage(key_id, month=month)
+
+
+@app.get('/admin/usage/summary')
+def admin_usage_summary(request: Request) -> dict[str, Any]:
+    """Get overall usage summary for the current month."""
+    _require_admin(request)
+    return get_all_usage_summary()
+
+
+@app.get('/api/quota')
+def api_quota(request: Request) -> dict[str, Any]:
+    """
+    Public endpoint: check remaining quota for the provided API key.
+    Requires X-API-Key header.
+    """
+    key_info = _get_api_key_info(request)
+    if not key_info:
+        raise HTTPException(status_code=401, detail='X-API-Key header required')
+    quota = check_quota(key_info['id'], key_info['plan'])
+    usage = get_usage(key_info['id'])
+    return {
+        'plan': key_info['plan'],
+        'plan_info': PLANS.get(key_info['plan'], PLANS['free']),
+        'quota': quota,
+        'usage': {
+            'analyses': usage['analyses_count'],
+            'requests': usage['requests_count'],
+            'month': usage['month'],
+        },
+    }

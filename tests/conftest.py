@@ -21,6 +21,19 @@ from backend.app import app  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """Clear rate-limit state before each test to avoid cross-test 429s."""
+    import backend.app as app_module
+    app_module._request_windows.clear()
+    app_module._blocked_until.clear()
+    app_module._violations.clear()
+    yield
+    app_module._request_windows.clear()
+    app_module._blocked_until.clear()
+    app_module._violations.clear()
+
+
 @pytest.fixture()
 def client() -> TestClient:
     return TestClient(app)

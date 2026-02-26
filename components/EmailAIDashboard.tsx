@@ -12,7 +12,7 @@ import {
   Mail, Send, Brain, Inbox, Megaphone, Search, RefreshCw,
   AlertTriangle, X, Check, ChevronRight, Clock, User, FileText, Zap,
   Shield, Filter, MailCheck, ToggleLeft, ToggleRight, Eye, Rocket,
-  Globe, ExternalLink,
+  Globe, ExternalLink, Copy,
 } from 'lucide-react';
 
 interface EmailAIDashboardProps {
@@ -20,7 +20,7 @@ interface EmailAIDashboardProps {
   token: string;
 }
 
-type Tab = 'compose' | 'prospection' | 'inbox' | 'drafts' | 'campaigns' | 'memory';
+type Tab = 'compose' | 'prospection' | 'research' | 'inbox' | 'drafts' | 'campaigns' | 'memory';
 
 const TARGET_TYPES = [
   { value: 'chu', label: 'CHU / Hôpital', emoji: '🏥' },
@@ -48,6 +48,14 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
   const [prospectionDraft, setProspectionDraft] = useState<EmailDraft | null>(null);
   const [researchReport, setResearchReport] = useState<ResearchReport | null>(null);
   const [researching, setResearching] = useState(false);
+
+  // Standalone Research state
+  const [researchName, setResearchName] = useState('');
+  const [researchType, setResearchType] = useState('chu');
+  const [researchKeywords, setResearchKeywords] = useState('');
+  const [standaloneReport, setStandaloneReport] = useState<ResearchReport | null>(null);
+  const [standaloneResearching, setStandaloneResearching] = useState(false);
+  const [researchHistory, setResearchHistory] = useState<ResearchReport[]>([]);
 
   // Inbox state
   const [inboxMessages, setInboxMessages] = useState<InboxMessage[]>([]);
@@ -105,6 +113,23 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
       setError(e.message);
     } finally {
       setResearching(false);
+    }
+  };
+
+  // ── Standalone Research ──
+  const handleStandaloneResearch = async () => {
+    if (!researchName.trim()) return;
+    setStandaloneResearching(true);
+    setError('');
+    setStandaloneReport(null);
+    try {
+      const report = await researchTarget(apiUrl, token, researchName, researchType, researchKeywords);
+      setStandaloneReport(report);
+      setResearchHistory(prev => [report, ...prev].slice(0, 10));
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setStandaloneResearching(false);
     }
   };
 
@@ -279,6 +304,7 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
   const tabs: { id: Tab; label: string; icon: React.FC<any> }[] = [
     { id: 'compose', label: 'COMPOSER', icon: Mail },
     { id: 'prospection', label: 'PROSPECTION', icon: Zap },
+    { id: 'research', label: 'RECHERCHE WEB', icon: Globe },
     { id: 'inbox', label: 'INBOX', icon: Inbox },
     { id: 'drafts', label: 'BROUILLONS', icon: FileText },
     { id: 'campaigns', label: 'CAMPAGNES', icon: Megaphone },
@@ -487,6 +513,184 @@ export const EmailAIDashboard: React.FC<EmailAIDashboardProps> = ({ apiUrl, toke
 
           {prospectionDraft && (
             <DraftPreview draft={prospectionDraft} onSend={handleSend} loading={loading} sent={sendSuccess === prospectionDraft.id} />
+          )}
+        </div>
+      )}
+
+      {/* ── RECHERCHE WEB TAB ── */}
+      {activeTab === 'research' && (
+        <div className="space-y-4">
+          {/* Search form */}
+          <div className="bg-[#0a0a0a] border border-gray-800 rounded-xl p-6 space-y-4">
+            <h3 className="font-orbitron text-sm text-cyan-300 tracking-wider flex items-center gap-2">
+              <Globe size={16} /> RECHERCHE WEB INTELLIGENTE
+            </h3>
+            <p className="text-xs text-gray-500">
+              Recherchez des informations sur une cible (hôpital, investisseur, partenaire…) avant de la démarcher.
+              L'agent scanne le web et analyse les pages pertinentes.
+            </p>
+
+            <div>
+              <label className="block text-xs text-gray-500 font-mono mb-2">TYPE DE CIBLE</label>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                {TARGET_TYPES.map(t => (
+                  <button key={t.value} onClick={() => setResearchType(t.value)}
+                    className={`p-3 rounded-lg border text-left text-sm transition-all
+                      ${researchType === t.value
+                        ? 'border-cyan-500/50 bg-cyan-900/20 text-cyan-300'
+                        : 'border-gray-700 text-gray-500 hover:border-gray-500'}`}>
+                    <span className="text-lg">{t.emoji}</span>
+                    <div className="mt-1 text-xs font-mono">{t.label}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-500 font-mono mb-1">NOM DE LA CIBLE *</label>
+                <input
+                  type="text"
+                  value={researchName}
+                  onChange={e => setResearchName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleStandaloneResearch()}
+                  placeholder="CHU Montpellier, Partech Partners, Dr. Martin..."
+                  className="w-full bg-[#050505] border border-gray-700 rounded-lg px-4 py-2.5 text-white font-mono text-sm
+                             focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 font-mono mb-1">MOTS-CLÉS SUPPLÉMENTAIRES</label>
+                <input
+                  type="text"
+                  value={researchKeywords}
+                  onChange={e => setResearchKeywords(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleStandaloneResearch()}
+                  placeholder="neurologie, Alzheimer, EEG, dépistage..."
+                  className="w-full bg-[#050505] border border-gray-700 rounded-lg px-4 py-2.5 text-white font-mono text-sm
+                             focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <button onClick={handleStandaloneResearch} disabled={standaloneResearching || !researchName.trim()}
+              className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-orbitron font-bold
+                         px-6 py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed
+                         flex items-center gap-2 shadow-lg shadow-cyan-900/30">
+              {standaloneResearching ? <RefreshCw size={16} className="animate-spin" /> : <Search size={16} />}
+              {standaloneResearching ? 'RECHERCHE EN COURS...' : 'LANCER LA RECHERCHE'}
+            </button>
+          </div>
+
+          {/* Research Results */}
+          {standaloneReport && (
+            <div className="space-y-4">
+              {/* KPI bar */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-[#0a0a0a] border border-gray-800 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold font-mono text-cyan-400">{standaloneReport.search_results.length}</div>
+                  <div className="text-xs text-gray-500 mt-1">Résultats trouvés</div>
+                </div>
+                <div className="bg-[#0a0a0a] border border-gray-800 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold font-mono text-blue-400">{standaloneReport.scraped_pages.length}</div>
+                  <div className="text-xs text-gray-500 mt-1">Pages analysées</div>
+                </div>
+                <div className="bg-[#0a0a0a] border border-gray-800 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold font-mono text-purple-400">
+                    {Math.round(standaloneReport.scraped_pages.reduce((acc, p) => acc + p.text_length, 0) / 1000)}k
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">Caractères extraits</div>
+                </div>
+                <div className="bg-[#0a0a0a] border border-gray-800 rounded-lg p-4 text-center">
+                  <div className="text-lg font-bold font-mono text-green-400 truncate">
+                    {TARGET_TYPES.find(t => t.value === standaloneReport.company_type)?.emoji || '🔍'} {standaloneReport.company_type || 'N/A'}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">Type de cible</div>
+                </div>
+              </div>
+
+              {/* Main content: 2 columns */}
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+                {/* Left: Search results */}
+                <div className="lg:col-span-2 bg-[#0a0a0a] border border-gray-800 rounded-xl p-5 space-y-3">
+                  <h4 className="font-orbitron text-xs text-cyan-300 tracking-wider flex items-center gap-2">
+                    <Search size={14} /> RÉSULTATS DE RECHERCHE
+                  </h4>
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                    {standaloneReport.search_results.map((sr, i) => (
+                      <div key={i} className="bg-black/40 border border-gray-800 rounded-lg p-3 hover:border-cyan-800/40 transition-colors">
+                        <a href={sr.url} target="_blank" rel="noopener noreferrer"
+                          className="text-cyan-400 hover:text-cyan-300 text-sm font-medium flex items-center gap-1.5">
+                          <span className="truncate">{sr.title || sr.url}</span>
+                          <ExternalLink size={10} className="flex-shrink-0" />
+                        </a>
+                        <div className="text-gray-600 text-xs mt-0.5 truncate">{sr.url}</div>
+                        <div className="text-gray-400 text-xs mt-1 line-clamp-2">{sr.snippet}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Scraped pages badges */}
+                  {standaloneReport.scraped_pages.length > 0 && (
+                    <div className="border-t border-gray-800 pt-3 space-y-2">
+                      <div className="text-xs text-gray-500 font-mono">PAGES SCRAPÉES :</div>
+                      <div className="space-y-1.5">
+                        {standaloneReport.scraped_pages.map((sp, i) => (
+                          <div key={i} className="flex items-center gap-2 text-xs">
+                            <span className="w-2 h-2 rounded-full bg-cyan-400 flex-shrink-0" />
+                            <a href={sp.url} target="_blank" rel="noopener noreferrer"
+                              className="text-cyan-300/70 hover:text-cyan-300 truncate flex-1">
+                              {sp.title || sp.url}
+                            </a>
+                            <span className="text-gray-600 font-mono flex-shrink-0">{Math.round(sp.text_length / 1000)}k</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: Research Summary (AI-compiled) */}
+                <div className="lg:col-span-3 bg-[#0a0a0a] border border-cyan-800/30 rounded-xl p-5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-orbitron text-xs text-cyan-300 tracking-wider flex items-center gap-2">
+                      <Brain size={14} /> SYNTHÈSE COMPLÈTE — {standaloneReport.company_name}
+                    </h4>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(standaloneReport.research_summary);
+                      }}
+                      className="text-gray-500 hover:text-cyan-300 text-xs font-mono flex items-center gap-1 border border-gray-700 px-2 py-1 rounded hover:border-cyan-800/50 transition-colors">
+                      <Copy size={10} /> Copier
+                    </button>
+                  </div>
+                  <div className="max-h-[500px] overflow-y-auto pr-1">
+                    <pre className="text-gray-300 text-xs font-mono whitespace-pre-wrap leading-relaxed">
+                      {standaloneReport.research_summary}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Research History */}
+          {researchHistory.length > 1 && (
+            <div className="bg-[#0a0a0a] border border-gray-800 rounded-xl p-5">
+              <h4 className="font-orbitron text-xs text-gray-400 tracking-wider mb-3 flex items-center gap-2">
+                <Clock size={14} /> HISTORIQUE DES RECHERCHES
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {researchHistory.slice(1).map((report, i) => (
+                  <button key={i} onClick={() => setStandaloneReport(report)}
+                    className="text-xs bg-gray-800 text-gray-300 border border-gray-700 px-3 py-1.5 rounded-lg hover:border-cyan-800/50 hover:text-cyan-300 transition-colors font-mono flex items-center gap-1.5">
+                    {TARGET_TYPES.find(t => t.value === report.company_type)?.emoji || '🔍'}
+                    {report.company_name}
+                    <span className="text-gray-600">({report.search_results.length})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}
